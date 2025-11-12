@@ -6,10 +6,14 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:db": "npx dotenv-cli -e .env.local -- npx tsx src/lib/db/test-connection.ts",
+    "test:helpers": "npx dotenv-cli -e .env.local -- npx tsx src/lib/db/test-helpers.ts",
+    "seed": "npx dotenv-cli -e .env.local -- npx tsx src/lib/db/seed.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.81.1",
+    "csv-parse": "^6.1.0",
     "date-fns": "^4.1.0",
     "lodash": "^4.17.21",
     "next": "16.0.1",
