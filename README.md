@@ -85,15 +85,38 @@ src/
 │   ├── ui/            # Reusable UI components
 │   └── layout/        # Layout components
 ├── lib/               # Business logic
-│   ├── db/           # Database queries
-│   ├── data/         # CSV parsing
-│   ├── email/        # Email sending
-│   └── sync/         # Data synchronization
+│   ├── db/           # Database queries & schema
+│   ├── data/         # CSV parsing & validation
+│   ├── sync/         # Profile sync logic
+│   ├── cron/         # Automated sync service
+│   └── email/        # Email sending (coming soon)
 ├── types/            # TypeScript type definitions
-└── utils/            # Helper functions
+└── utils/            # Helper functions (name parser, validator)
+
+data/                  # CSV files for sync
 ```
 
-## 📝 Development Workflow
+## �️ Database Setup
+
+### Initial Setup
+
+1. Create Supabase account and project
+2. Copy database URL and keys to `.env.local`
+3. Seed database with sample data:
+
+```bash
+# Import profiles from CSV
+npm run seed
+```
+
+This will:
+
+- Read CSV from `data/InterTalent-Top-Talent-11102025.csv`
+- Validate all profiles
+- Import to database in batches of 100
+- Log import statistics
+
+## �📝 Development Workflow
 
 ### Branches
 
@@ -124,6 +147,18 @@ git push origin develop
 ## 🧪 Testing
 
 ```bash
+# Test database connection
+npm run test:db
+
+# Test database helper functions
+npm run test:helpers
+
+# Test CSV sync functionality
+npm run test:sync
+
+# Run manual sync
+npm run sync:now
+
 # Run linter
 npm run lint
 
@@ -133,6 +168,33 @@ npx tsc --noEmit
 # Format code
 npx prettier --write .
 ```
+
+## 🔄 Data Sync
+
+The application includes automated profile synchronization:
+
+```bash
+# Start automated sync service (every 2 hours)
+npm run cron:start
+
+# Start in testing mode (every 2 minutes)
+npm run cron:start testing
+
+# Run manual sync
+npm run sync:now
+
+# Test sync with existing CSV
+npm run test:sync
+```
+
+The sync service:
+
+- Monitors `data/` directory for latest CSV file
+- Compares CSV data with database profiles
+- Inserts new profiles
+- Updates changed profiles (profession, office, summary, zip)
+- Soft-deletes removed profiles (sets `is_active=false`)
+- Uses unique key: `firstName|lastInitial|city|state`
 
 ## 📦 Build & Deploy
 
@@ -164,4 +226,4 @@ Proprietary - InterSolutions Client Project
 
 **Last Updated:** November 12, 2025  
 **Developer:** Ray Parker  
-**Status:** In Development (Day 1)
+**Status:** In Development (Day 4 - Automated Sync Complete)

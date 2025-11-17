@@ -14,7 +14,9 @@ export interface ValidationResult {
 /**
  * Validate a complete profile
  */
-export function validateProfile(profile: Partial<ParsedProfile>): ValidationResult {
+export function validateProfile(
+  profile: Partial<ParsedProfile>
+): ValidationResult {
   const errors: string[] = [];
   const warnings: string[] = [];
 
@@ -48,10 +50,15 @@ export function validateProfile(profile: Partial<ParsedProfile>): ValidationResu
   if (!profile.zip_code || profile.zip_code.trim() === '') {
     errors.push('Zip code is required');
   } else if (!validateZipCode(profile.zip_code)) {
-    warnings.push('Zip code format may be invalid (expected: 12345 or 12345-6789)');
+    warnings.push(
+      'Zip code format may be invalid (expected: 12345 or 12345-6789)'
+    );
   }
 
-  if (!profile.professional_summary || profile.professional_summary.trim() === '') {
+  if (
+    !profile.professional_summary ||
+    profile.professional_summary.trim() === ''
+  ) {
     errors.push('Professional summary is required');
   } else if (profile.professional_summary.length > 10000) {
     errors.push('Professional summary is too long (max 10000 characters)');
@@ -77,9 +84,9 @@ export function validateProfile(profile: Partial<ParsedProfile>): ValidationResu
  */
 export function validateZipCode(zipCode: string): boolean {
   if (!zipCode) return false;
-  
+
   const cleaned = zipCode.trim();
-  
+
   // 5 digits OR 5 digits + dash + 4 digits
   return /^\d{5}(-\d{4})?$/.test(cleaned);
 }
@@ -89,16 +96,61 @@ export function validateZipCode(zipCode: string): boolean {
  */
 export function validateStateCode(state: string): boolean {
   if (!state) return false;
-  
+
   const validStates = [
-    'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
-    'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
-    'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
-    'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
-    'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY',
+    'AL',
+    'AK',
+    'AZ',
+    'AR',
+    'CA',
+    'CO',
+    'CT',
+    'DE',
+    'FL',
+    'GA',
+    'HI',
+    'ID',
+    'IL',
+    'IN',
+    'IA',
+    'KS',
+    'KY',
+    'LA',
+    'ME',
+    'MD',
+    'MA',
+    'MI',
+    'MN',
+    'MS',
+    'MO',
+    'MT',
+    'NE',
+    'NV',
+    'NH',
+    'NJ',
+    'NM',
+    'NY',
+    'NC',
+    'ND',
+    'OH',
+    'OK',
+    'OR',
+    'PA',
+    'RI',
+    'SC',
+    'SD',
+    'TN',
+    'TX',
+    'UT',
+    'VT',
+    'VA',
+    'WA',
+    'WV',
+    'WI',
+    'WY',
     'DC', // District of Columbia
   ];
-  
+
   return validStates.includes(state.toUpperCase());
 }
 
@@ -127,9 +179,12 @@ export function validateProfiles(profiles: ParsedProfile[]): {
   invalid: Array<{ profile: ParsedProfile; validation: ValidationResult }>;
 } {
   const valid: ParsedProfile[] = [];
-  const invalid: Array<{ profile: ParsedProfile; validation: ValidationResult }> = [];
+  const invalid: Array<{
+    profile: ParsedProfile;
+    validation: ValidationResult;
+  }> = [];
 
-  profiles.forEach(profile => {
+  profiles.forEach((profile) => {
     const validation = validateProfile(profile);
     if (validation.valid) {
       valid.push(profile);
@@ -147,10 +202,11 @@ export function validateProfiles(profiles: ParsedProfile[]): {
 export function findDuplicates(profiles: ParsedProfile[]): ParsedProfile[][] {
   const groups = new Map<string, ParsedProfile[]>();
 
-  profiles.forEach(profile => {
+  profiles.forEach((profile) => {
     // Create unique key: firstName + lastInitial + city + state
-    const key = `${profile.first_name}|${profile.last_initial}|${profile.city}|${profile.state}`.toLowerCase();
-    
+    const key =
+      `${profile.first_name}|${profile.last_initial}|${profile.city}|${profile.state}`.toLowerCase();
+
     if (!groups.has(key)) {
       groups.set(key, []);
     }
@@ -158,5 +214,5 @@ export function findDuplicates(profiles: ParsedProfile[]): ParsedProfile[][] {
   });
 
   // Return only groups with more than one profile
-  return Array.from(groups.values()).filter(group => group.length > 1);
+  return Array.from(groups.values()).filter((group) => group.length > 1);
 }

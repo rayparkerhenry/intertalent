@@ -9,7 +9,10 @@
     "lint": "eslint",
     "test:db": "npx dotenv-cli -e .env.local -- npx tsx src/lib/db/test-connection.ts",
     "test:helpers": "npx dotenv-cli -e .env.local -- npx tsx src/lib/db/test-helpers.ts",
-    "seed": "npx dotenv-cli -e .env.local -- npx tsx src/lib/db/seed.ts"
+    "test:sync": "npx dotenv-cli -e .env.local -- npx tsx src/lib/sync/test-sync.ts",
+    "seed": "npx dotenv-cli -e .env.local -- npx tsx src/lib/db/seed.ts",
+    "sync:now": "npx dotenv-cli -e .env.local -- npx tsx src/lib/cron/run-sync.ts",
+    "cron:start": "npx dotenv-cli -e .env.local -- npx tsx src/lib/cron/start-cron.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.81.1",
@@ -17,6 +20,7 @@
     "date-fns": "^4.1.0",
     "lodash": "^4.17.21",
     "next": "16.0.1",
+    "node-cron": "^4.2.1",
     "react": "19.2.0",
     "react-dom": "19.2.0"
   },
@@ -24,6 +28,7 @@
     "@tailwindcss/postcss": "^4",
     "@types/lodash": "^4.17.20",
     "@types/node": "^20",
+    "@types/node-cron": "^3.0.11",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "dotenv-cli": "^11.0.0",

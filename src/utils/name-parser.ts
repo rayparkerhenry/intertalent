@@ -47,7 +47,10 @@ export function parseFullName(fullName: string): ParsedName {
 /**
  * Parse when first name and last initial are already separated
  */
-export function parseNameParts(firstName: string, lastInitial: string): ParsedName {
+export function parseNameParts(
+  firstName: string,
+  lastInitial: string
+): ParsedName {
   const cleanedFirst = firstName.trim();
   const cleanedLast = lastInitial.trim().toUpperCase();
 
@@ -77,10 +80,10 @@ export function formatName(firstName: string, lastInitial: string): string {
  */
 export function normalizeName(name: string): string {
   if (!name) return '';
-  
+
   const cleaned = name.trim();
   if (cleaned.length === 0) return '';
-  
+
   // Capitalize first letter, keep rest as-is (to preserve names like "José")
   return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
 }
