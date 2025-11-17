@@ -22,10 +22,16 @@ A public-facing talent showcase platform for InterSolutions, allowing clients to
 - **Framework:** Next.js 16 (App Router)
 - **Language:** TypeScript
 - **Styling:** Tailwind CSS 4
-- **Database:** PostgreSQL (Supabase)
-- **Hosting:** Vercel
+- **Database:** PostgreSQL (Supabase) → Azure SQL Server (Production)
+- **Hosting:** Vercel → Azure App Service (Production)
 - **Email:** SendGrid
 - **Analytics:** Google Analytics 4
+
+### Development Strategy
+
+**Weeks 1-2 (Development):** PostgreSQL/Supabase for rapid development  
+**Week 3 (Migration):** Azure SQL Server + Azure App Service for production  
+**Architecture:** Database abstraction layer enables seamless migration
 
 ## 🚀 Getting Started
 
@@ -210,9 +216,43 @@ npm run start
 
 ## 📚 Additional Documentation
 
+### Strategy & Planning
+
+- [Updated Development Strategy](./UPDATED_DEVELOPMENT_STRATEGY.md) ⭐ **NEW - Read First**
+- [Remaining Work Guide](./REMAINING_WORK_GUIDE.md) - Quick reference for daily tasks
+- [Client Requirements Analysis](./CLIENT_REQUIREMENTS_ANALYSIS.md) - Requirements validation
+- [Workflow Comparison](./WORKFLOW_COMPARISON.md) - Expected vs actual workflows
+
+### Historical Documentation
+
 - [Technical Architecture](../project-Talent_Showcase_Tool/02-technical-design/ARCHITECTURE.md)
 - [Development Plan](../project-Talent_Showcase_Tool/00-planning/MASTER_PLAN.md)
 - [Daily Checklists](../project-Talent_Showcase_Tool/00-planning/daily-checklists/)
+- [Day 4 Summary](./DAY_4_COMPLETION_SUMMARY.md) - Sync system completion
+
+## 🔄 Database Abstraction Strategy
+
+This project uses a **database abstraction layer** to enable seamless migration from PostgreSQL (development) to Azure SQL Server (production).
+
+**Key Benefits:**
+
+- ✅ Develop fast with PostgreSQL (Weeks 1-2)
+- ✅ Single configuration change to switch databases
+- ✅ 90%+ code reusability
+- ✅ Easy Azure SQL migration (Week 3)
+
+**Implementation:**
+
+```typescript
+// All database operations through clean interface
+import { db } from '@/lib/db';
+
+// Works with both PostgreSQL and Azure SQL
+const profiles = await db.getAllProfiles();
+const profile = await db.getProfileById(id);
+```
+
+See [UPDATED_DEVELOPMENT_STRATEGY.md](./UPDATED_DEVELOPMENT_STRATEGY.md) for complete details.
 
 ## 🤝 Contributing
 
@@ -224,6 +264,7 @@ Proprietary - InterSolutions Client Project
 
 ---
 
-**Last Updated:** November 12, 2025  
+**Last Updated:** November 15, 2025  
 **Developer:** Ray Parker  
-**Status:** In Development (Day 4 - Automated Sync Complete)
+**Status:** In Development (Day 5 - Database Abstraction + API Routes)  
+**Strategy:** PostgreSQL (Dev) → Azure SQL (Production Week 3)

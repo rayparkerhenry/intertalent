@@ -4,7 +4,8 @@
  */
 
 import { parseCSVFile } from '../data/csv-parser';
-import { supabaseAdmin, type Profile } from '../db/supabase';
+import { db } from '../db';
+import type { Profile } from '../db/supabase';
 import { sanitizeProfile, validateProfile } from '../../utils/validator';
 import type { ParsedProfile } from '../data/csv-parser';
 
@@ -67,23 +68,14 @@ export async function syncProfiles(csvFilePath: string): Promise<SyncResult> {
 
     // Step 3: Get existing profiles from database
     console.log('📊 Step 3: Fetching existing profiles from database...');
-    const { data: existingProfiles, error: fetchError } = await supabaseAdmin
-      .from('profiles')
-      .select('*');
+    const allProfilesResult = await db.getAllProfiles(1, 10000); // Get all profiles
+    const existingProfiles = allProfilesResult.profiles;
 
-    if (fetchError) {
-      result.errors.push(`Database fetch error: ${fetchError.message}`);
-      result.duration_ms = Date.now() - startTime;
-      return result;
-    }
-
-    console.log(
-      `✅ Found ${existingProfiles?.length || 0} existing profiles\n`
-    );
+    console.log(`✅ Found ${existingProfiles.length} existing profiles\n`);
 
     // Step 4: Compare and determine operations
     console.log('🔍 Step 4: Comparing profiles...');
-    const comparison = compareProfiles(validProfiles, existingProfiles || []);
+    const comparison = compareProfiles(validProfiles, existingProfiles);
     console.log(`  • To Insert: ${comparison.toInsert.length}`);
     console.log(`  • To Update: ${comparison.toUpdate.length}`);
     console.log(`  • To Delete: ${comparison.toDelete.length}`);
@@ -97,16 +89,14 @@ export async function syncProfiles(csvFilePath: string): Promise<SyncResult> {
       console.log(
         `  📥 Inserting ${comparison.toInsert.length} new profiles...`
       );
-      const { data: inserted, error: insertError } = await supabaseAdmin
-        .from('profiles')
-        .insert(comparison.toInsert)
-        .select('id');
-
-      if (insertError) {
-        result.errors.push(`Insert error: ${insertError.message}`);
-      } else {
-        result.inserted = inserted?.length || 0;
+      try {
+        await db.insertProfiles(comparison.toInsert as Profile[]);
+        result.inserted = comparison.toInsert.length;
         console.log(`  ✅ Inserted ${result.inserted} profiles`);
+      } catch (insertError) {
+        result.errors.push(
+          `Insert error: ${insertError instanceof Error ? insertError.message : 'Unknown error'}`
+        );
       }
     }
 
@@ -116,20 +106,16 @@ export async function syncProfiles(csvFilePath: string): Promise<SyncResult> {
       let updated = 0;
 
       for (const update of comparison.toUpdate) {
-        const { error: updateError } = await supabaseAdmin
-          .from('profiles')
-          .update({
+        try {
+          await db.updateProfile(update.id, {
             ...update.newData,
             updated_at: new Date().toISOString(),
-          })
-          .eq('id', update.id);
-
-        if (updateError) {
-          result.errors.push(
-            `Update error for ID ${update.id}: ${updateError.message}`
-          );
-        } else {
+          });
           updated++;
+        } catch (updateError) {
+          result.errors.push(
+            `Update error for ID ${update.id}: ${updateError instanceof Error ? updateError.message : 'Unknown error'}`
+          );
         }
       }
 
@@ -142,19 +128,14 @@ export async function syncProfiles(csvFilePath: string): Promise<SyncResult> {
       console.log(
         `  🗑️  Deactivating ${comparison.toDelete.length} profiles...`
       );
-      const { error: deleteError } = await supabaseAdmin
-        .from('profiles')
-        .update({
-          is_active: false,
-          updated_at: new Date().toISOString(),
-        })
-        .in('id', comparison.toDelete);
-
-      if (deleteError) {
-        result.errors.push(`Delete error: ${deleteError.message}`);
-      } else {
+      try {
+        await db.deleteProfiles(comparison.toDelete);
         result.deleted = comparison.toDelete.length;
         console.log(`  ✅ Deactivated ${result.deleted} profiles`);
+      } catch (deleteError) {
+        result.errors.push(
+          `Delete error: ${deleteError instanceof Error ? deleteError.message : 'Unknown error'}`
+        );
       }
     }
 
