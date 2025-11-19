@@ -1,11 +1,8 @@
 export function ProfileCardSkeleton() {
   return (
     <div className="bg-white rounded-lg shadow-md p-6 border-l-4 border-l-gray-300 animate-pulse">
-      <div className="flex items-start gap-4">
-        {/* Avatar skeleton */}
-        <div className="shrink-0 w-16 h-16 rounded-full bg-gray-200"></div>
-
-        {/* Content skeleton */}
+      <div className="flex items-start gap-2">
+        {/* Content skeleton (no avatar per Figma) */}
         <div className="flex-1 space-y-3">
           {/* Name and title */}
           <div className="space-y-2">

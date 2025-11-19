@@ -32,7 +32,7 @@ export default async function Home({
     ['asc', 'desc'].includes(params.sortDirection)
       ? (params.sortDirection as 'asc' | 'desc')
       : 'asc';
-  const limit = 20;
+  const limit = 5; // Changed from 20 to match Figma design (Phase 1)
 
   // Fetch profiles - either search or get all
   let result;

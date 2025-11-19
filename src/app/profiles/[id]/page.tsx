@@ -45,16 +45,8 @@ export default async function ProfilePage({
           <div className="lg:col-span-2 space-y-6">
             {/* Profile Header Card */}
             <div className="bg-white rounded-lg shadow-md p-8">
-              <div className="flex items-start gap-6">
-                {/* Avatar */}
-                <div className="shrink-0">
-                  <div className="w-24 h-24 rounded-full bg-linear-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-3xl font-semibold">
-                    {profile.first_name?.[0] || 'P'}
-                    {profile.last_initial || ''}
-                  </div>
-                </div>
-
-                {/* Profile Info */}
+              <div className="flex items-start gap-4">
+                {/* Profile Info (no avatar per Figma) */}
                 <div className="flex-1">
                   <h1 className="text-3xl font-bold text-gray-900 mb-2">
                     {profile.first_name} {profile.last_initial}.

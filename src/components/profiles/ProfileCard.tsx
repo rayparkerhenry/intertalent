@@ -32,16 +32,8 @@ export default function ProfileCard({
       <div
         className={`bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow p-6 border-l-4 ${colorClass}`}
       >
-        <div className="flex items-center gap-6">
-          {/* Avatar */}
-          <div className="shrink-0">
-            <div className="w-20 h-20 rounded-full bg-linear-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-2xl font-semibold">
-              {profile.first_name?.[0] || 'P'}
-              {profile.last_initial || ''}
-            </div>
-          </div>
-
-          {/* Profile Info - Horizontal Layout */}
+        <div className="flex items-center gap-4">
+          {/* Profile Info - Horizontal Layout (no avatar per Figma) */}
           <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
             {/* Name and Location */}
             <div>
@@ -125,16 +117,8 @@ export default function ProfileCard({
     <div
       className={`bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow p-6 border-l-4 ${colorClass}`}
     >
-      <div className="flex items-start gap-4">
-        {/* Avatar */}
-        <div className="shrink-0">
-          <div className="w-16 h-16 rounded-full bg-linear-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-xl font-semibold">
-            {profile.first_name?.[0] || 'P'}
-            {profile.last_initial || ''}
-          </div>
-        </div>
-
-        {/* Profile Info */}
+      <div className="flex items-start gap-2">
+        {/* Profile Info (no avatar per Figma) */}
         <div className="flex-1 min-w-0">
           {/* Name and Profession */}
           <div className="flex items-center justify-between mb-2">
