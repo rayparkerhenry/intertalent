@@ -3,6 +3,7 @@ import BlueBanner from '@/components/home/BlueBanner';
 import SearchFilters from '@/components/search/SearchFilters';
 import ProfileResults from '@/components/search/ProfileResults';
 import EmptyState from '@/components/ui/EmptyState';
+import SearchParamsSyncer from '@/components/search/SearchParamsSyncer';
 import { db } from '@/lib/db';
 
 export default async function Home({
@@ -17,6 +18,9 @@ export default async function Home({
     typeof params.keywords === 'string' ? params.keywords : undefined;
   const city = typeof params.city === 'string' ? params.city : undefined;
   const state = typeof params.state === 'string' ? params.state : undefined;
+  const zipCode = typeof params.zip === 'string' ? params.zip : undefined;
+  const radius =
+    typeof params.radius === 'string' ? parseInt(params.radius) : undefined;
   const professionType =
     typeof params.profession === 'string' ? params.profession : undefined;
   const office = typeof params.office === 'string' ? params.office : undefined;
@@ -37,13 +41,16 @@ export default async function Home({
 
   // Fetch profiles - either search or get all
   let result;
-  const hasFilters = keywords || city || state || professionType || office;
+  const hasFilters =
+    keywords || city || state || professionType || office || zipCode;
 
   if (hasFilters) {
     result = await db.searchProfiles({
       query: keywords,
       city,
       state,
+      zipCode,
+      radius,
       professionType,
       office,
       page,
@@ -57,6 +64,9 @@ export default async function Home({
 
   return (
     <div className="bg-gray-50">
+      {/* Sync URL params with Zustand store */}
+      <SearchParamsSyncer />
+
       {/* Hero Section with Search */}
       <HeroSearch />
 

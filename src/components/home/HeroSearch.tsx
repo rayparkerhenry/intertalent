@@ -2,12 +2,19 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSearchStore } from '@/store/searchStore';
 
 export default function HeroSearch() {
   const router = useRouter();
-  const [profession, setProfession] = useState('');
-  const [location, setLocation] = useState('');
   const [professions, setProfessions] = useState<string[]>([]);
+
+  // Use Zustand store for state management
+  const profession = useSearchStore((state) => state.profession);
+  const location = useSearchStore((state) => state.location);
+  const setProfession = useSearchStore((state) => state.setProfession);
+  const setLocation = useSearchStore((state) => state.setLocation);
+  const parseLocation = useSearchStore((state) => state.parseLocation);
+  const buildQueryParams = useSearchStore((state) => state.buildQueryParams);
 
   // Fetch professions on mount
   useEffect(() => {
@@ -26,11 +33,11 @@ export default function HeroSearch() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Build query params
-    const params = new URLSearchParams();
-    if (profession) params.set('profession', profession);
-    if (location) params.set('city', location);
+    // Parse location before building query params
+    parseLocation();
 
+    // Build query params from store
+    const params = buildQueryParams();
     router.push(`/?${params.toString()}`);
   };
 

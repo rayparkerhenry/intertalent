@@ -12,6 +12,7 @@ import type {
   OfficeInfo,
 } from '../interface';
 import type { Profile } from '../supabase';
+import { getProfilesWithinRadius } from '@/lib/geospatial';
 
 export class PostgresDatabase implements IDatabase {
   constructor(
@@ -146,18 +147,51 @@ export class PostgresDatabase implements IDatabase {
     if (state) {
       queryBuilder = queryBuilder.eq('state', state.toUpperCase());
     }
-    if (zipCode) {
-      queryBuilder = queryBuilder.eq('zip_code', zipCode);
-    }
     if (office) {
       queryBuilder = queryBuilder.eq('office', office);
     }
 
-    // Keyword search in professional summary
+    // Keyword search in professional summary, name, and city
+    // Searches: bio text, first name, and city name (e.g., "HVAC" or "Ethan")
     if (query) {
       queryBuilder = queryBuilder.or(
         `professional_summary.ilike.%${query}%,first_name.ilike.%${query}%,city.ilike.%${query}%`
       );
+    }
+
+    // Handle geospatial radius search if zipCode and radius are provided
+    let radiusFilteredIds: string[] | null = null;
+    if (zipCode && params.radius && params.radius > 0) {
+      // First, get all profile IDs and zip codes for radius filtering
+      const { data: allProfiles } = await this.client
+        .from('profiles')
+        .select('id, zip_code')
+        .eq('is_active', true);
+
+      if (allProfiles && allProfiles.length > 0) {
+        radiusFilteredIds = await getProfilesWithinRadius(
+          zipCode,
+          params.radius,
+          allProfiles
+        );
+
+        // Apply radius filter
+        if (radiusFilteredIds.length === 0) {
+          // No profiles within radius, return empty result
+          return {
+            profiles: [],
+            total: 0,
+            page,
+            limit,
+            totalPages: 0,
+          };
+        }
+
+        queryBuilder = queryBuilder.in('id', radiusFilteredIds);
+      }
+    } else if (zipCode) {
+      // Exact zip match if no radius specified
+      queryBuilder = queryBuilder.eq('zip_code', zipCode);
     }
 
     // Execute query with pagination and sorting

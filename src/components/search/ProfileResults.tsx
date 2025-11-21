@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import ProfileCard from '@/components/profiles/ProfileCard';
 import ShowMoreButton from './ShowMoreButton';
+import { useSearchStore } from '@/store/searchStore';
 import type { Profile } from '@/lib/db/supabase';
 
 interface ProfileResultsProps {
@@ -17,14 +18,23 @@ export default function ProfileResults({
   // Fixed to list view only per Figma design
   const viewMode = 'list';
 
+  // Get bookmarked IDs from store
+  const bookmarkedIds = useSearchStore((state) => state.bookmarkedIds);
+  const showBookmarksOnly = useSearchStore((state) => state.showBookmarksOnly);
+
+  // Filter profiles if showing bookmarks only
+  const filteredProfiles = showBookmarksOnly
+    ? profiles.filter((p) => bookmarkedIds.includes(p.id))
+    : profiles;
+
   // Manage how many profiles to show (start with initialDisplay, load 5 more each time)
   const [displayCount, setDisplayCount] = useState(initialDisplay);
 
   const handleShowMore = () => {
-    setDisplayCount((prev) => Math.min(prev + 5, profiles.length));
+    setDisplayCount((prev) => Math.min(prev + 5, filteredProfiles.length));
   };
 
-  const displayedProfiles = profiles.slice(0, displayCount);
+  const displayedProfiles = filteredProfiles.slice(0, displayCount);
 
   return (
     <>
@@ -38,7 +48,7 @@ export default function ProfileResults({
       {/* Show More Button */}
       <ShowMoreButton
         currentCount={displayCount}
-        totalCount={profiles.length}
+        totalCount={filteredProfiles.length}
         onShowMore={handleShowMore}
       />
     </>

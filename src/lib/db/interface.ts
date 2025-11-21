@@ -15,6 +15,7 @@ export interface ProfileSearchParams {
   city?: string;
   state?: string;
   zipCode?: string;
+  radius?: number; // Radius in miles for zip code search
   office?: string;
   page?: number;
   limit?: number;

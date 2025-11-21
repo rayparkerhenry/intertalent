@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchStore } from '@/store/searchStore';
 
 interface SearchFiltersProps {
   className?: string;
@@ -14,13 +15,20 @@ export default function SearchFilters({ className = '' }: SearchFiltersProps) {
   const [professions, setProfessions] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Current filter values
-  const [selectedProfessions, setSelectedProfessions] = useState<string[]>([
-    searchParams.get('profession') || '',
-  ]);
-  const [keywords, setKeywords] = useState(searchParams.get('keywords') || '');
-  const [zipCode, setZipCode] = useState('');
-  const [radius, setRadius] = useState(10);
+  // Use Zustand store for filter state
+  const keywords = useSearchStore((state) => state.keywords);
+  const zipCode = useSearchStore((state) => state.zipCode);
+  const radius = useSearchStore((state) => state.radius);
+  const selectedProfessions = useSearchStore(
+    (state) => state.selectedProfessions
+  );
+
+  const setKeywords = useSearchStore((state) => state.setKeywords);
+  const setZipCode = useSearchStore((state) => state.setZipCode);
+  const setRadius = useSearchStore((state) => state.setRadius);
+  const toggleProfession = useSearchStore((state) => state.toggleProfession);
+  const clearFilters = useSearchStore((state) => state.clearFilters);
+  const buildQueryParams = useSearchStore((state) => state.buildQueryParams);
 
   // Fetch filter options on mount
   useEffect(() => {
@@ -39,31 +47,13 @@ export default function SearchFilters({ className = '' }: SearchFiltersProps) {
     fetchFilters();
   }, []);
 
-  const handleProfessionToggle = (profession: string) => {
-    setSelectedProfessions((prev) =>
-      prev.includes(profession)
-        ? prev.filter((p) => p !== profession)
-        : [...prev, profession]
-    );
-  };
-
   const applyFilters = () => {
-    const params = new URLSearchParams();
-
-    if (keywords) params.set('keywords', keywords);
-    if (selectedProfessions.length > 0)
-      params.set('profession', selectedProfessions.join(','));
-    if (zipCode) params.set('zip', zipCode);
-    if (radius !== 10) params.set('radius', radius.toString());
-
+    const params = buildQueryParams();
     router.push(`/?${params.toString()}`);
   };
 
-  const clearFilters = () => {
-    setSelectedProfessions([]);
-    setZipCode('');
-    setRadius(10);
-    setKeywords('');
+  const handleClearFilters = () => {
+    clearFilters();
     router.push('/');
   };
 
@@ -224,7 +214,7 @@ export default function SearchFilters({ className = '' }: SearchFiltersProps) {
                     <input
                       type="checkbox"
                       checked={selectedProfessions.includes(profession)}
-                      onChange={() => handleProfessionToggle(profession)}
+                      onChange={() => toggleProfession(profession)}
                       className="peer w-5 h-5 rounded-md border-2 border-gray-300 appearance-none cursor-pointer checked:bg-[#1e3a5f] checked:border-[#1e3a5f] focus:ring-2 focus:ring-[#1e3a5f] focus:ring-offset-0 transition-colors"
                     />
                     {/* Checkmark icon */}
