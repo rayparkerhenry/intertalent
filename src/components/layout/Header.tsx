@@ -2,12 +2,17 @@ import Link from 'next/link';
 
 export default function Header() {
   return (
-    <header className="bg-[#1e3a5f] text-white">
+    <header className="absolute top-0 left-0 right-0 z-50 bg-black/0 text-white">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="text-xl font-semibold">
-            InterSolutions
+          <Link href="/" className="flex flex-col">
+            <span className="text-3xl font-bold leading-tight">
+              InterSolutions
+            </span>
+            <span className="text-[8px] font-medium tracking-wider leading-tight">
+              PROPERTY MANAGEMENT STAFFING SPECIALISTS
+            </span>
           </Link>
 
           {/* Navigation */}

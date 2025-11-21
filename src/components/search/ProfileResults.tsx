@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import ProfileCard from '@/components/profiles/ProfileCard';
-import ViewToggle from './ViewToggle';
 import ShowMoreButton from './ShowMoreButton';
 import type { Profile } from '@/lib/db/supabase';
 
@@ -15,25 +14,11 @@ export default function ProfileResults({
   profiles,
   initialDisplay = 5,
 }: ProfileResultsProps) {
-  // Initialize with lazy function to read localStorage once
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
-    if (typeof window !== 'undefined') {
-      const savedView = localStorage.getItem('profileViewMode') as
-        | 'grid'
-        | 'list'
-        | null;
-      return savedView || 'grid';
-    }
-    return 'grid';
-  });
+  // Fixed to list view only per Figma design
+  const viewMode = 'list';
 
   // Manage how many profiles to show (start with initialDisplay, load 5 more each time)
   const [displayCount, setDisplayCount] = useState(initialDisplay);
-
-  const handleViewChange = (view: 'grid' | 'list') => {
-    setViewMode(view);
-    localStorage.setItem('profileViewMode', view);
-  };
 
   const handleShowMore = () => {
     setDisplayCount((prev) => Math.min(prev + 5, profiles.length));
@@ -43,19 +28,8 @@ export default function ProfileResults({
 
   return (
     <>
-      {/* View Toggle */}
-      <div className="flex justify-end mb-4">
-        <ViewToggle onViewChange={handleViewChange} initialView={viewMode} />
-      </div>
-
-      {/* Profile Grid or List */}
-      <div
-        className={
-          viewMode === 'grid'
-            ? 'grid grid-cols-1 md:grid-cols-2 gap-6'
-            : 'space-y-4'
-        }
-      >
+      {/* Profile List */}
+      <div className="space-y-4">
         {displayedProfiles.map((profile) => (
           <ProfileCard key={profile.id} profile={profile} variant={viewMode} />
         ))}

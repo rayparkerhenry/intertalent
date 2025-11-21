@@ -1,6 +1,6 @@
 import HeroSearch from '@/components/home/HeroSearch';
+import BlueBanner from '@/components/home/BlueBanner';
 import SearchFilters from '@/components/search/SearchFilters';
-import SortControls from '@/components/search/SortControls';
 import ProfileResults from '@/components/search/ProfileResults';
 import EmptyState from '@/components/ui/EmptyState';
 import { db } from '@/lib/db';
@@ -60,6 +60,9 @@ export default async function Home({
       {/* Hero Section with Search */}
       <HeroSearch />
 
+      {/* Blue Banner Divider */}
+      <BlueBanner />
+
       {/* Main Content */}
       <section className="container mx-auto px-4 py-12">
         <div className="flex flex-col lg:flex-row gap-8">
@@ -73,13 +76,13 @@ export default async function Home({
             {/* Results Header */}
             <div className="mb-6">
               <h2 className="text-3xl font-bold text-gray-900 mb-2">
-                {hasFilters ? 'Search Results' : 'Recommended Candidates'}
+                Recommended Candidates
               </h2>
               <p className="text-gray-600">
                 {result.total > 0 ? (
                   <>
                     Found{' '}
-                    <span className="font-semibold text-gray-900">
+                    <span className="font-bold text-gray-900">
                       {result.total}
                     </span>{' '}
                     {result.total === 1 ? 'candidate' : 'candidates'}
@@ -89,9 +92,6 @@ export default async function Home({
                 )}
               </p>
             </div>
-
-            {/* Sort Controls */}
-            {result.profiles.length > 0 && <SortControls />}
 
             {/* Profile Cards or Empty State */}
             {result.profiles.length > 0 ? (

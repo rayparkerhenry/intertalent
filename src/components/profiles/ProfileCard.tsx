@@ -69,126 +69,128 @@ export default function ProfileCard({
   if (variant === 'list') {
     return (
       <div
-        className={`bg-white rounded-lg shadow-sm hover:shadow-md transition-all p-5 border-l-4 ${colorClass} ${
+        className={`bg-white rounded-lg shadow-md hover:shadow-lg transition-all p-6 border-l-4 ${colorClass} ${
           isExpanded ? 'ring-2 ring-orange-200' : ''
         }`}
       >
-        <div className="flex flex-col gap-3">
-          {/* Top row: Name, Location, Bookmark */}
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1">
-              <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                {fullName}
-              </h3>
-              <p className="text-sm text-gray-600 mb-2">
-                {profile.profession_type || 'Property Maintenance'}
-              </p>
-              <div className="flex items-center text-sm text-gray-600">
-                <svg
-                  className="w-4 h-4 mr-1"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                  />
-                </svg>
-                {profile.city}, {profile.state} • {profile.zip_code}
-              </div>
-            </div>
+        {/* Top Row: Name/Profession/Location AND Buttons */}
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between md:gap-6 mb-4">
+          {/* Right on desktop, first on mobile: Bookmark and Request Button side by side */}
+          <div className="flex items-center gap-3 w-full md:w-auto md:items-start md:flex-shrink-0 md:self-start md:order-2">
+            {/* Bookmark Button */}
             <button
-              className="shrink-0 w-10 h-10 rounded-full bg-[#29456b] text-white flex items-center justify-center hover:bg-[#1e3a5f] transition-colors text-sm font-semibold"
+              className="w-12 md:w-10 h-10 rounded-full border-2 border-gray-300 bg-white flex items-center justify-center hover:border-gray-400 hover:bg-gray-50 transition-colors"
               aria-label="Bookmark"
               title={`Bookmark ${fullName}`}
             >
-              {firstInitial}
-            </button>
-          </div>
-
-          {/* Bio Snippet or Full Bio */}
-          <div className="text-sm text-gray-700">
-            <p className="leading-relaxed">
-              {isExpanded ? cleanFullBio : bioSnippet}
-            </p>
-          </div>
-
-          {/* Stats (show when expanded) */}
-          {isExpanded && (
-            <div className="flex flex-wrap gap-4 text-sm text-gray-700 pb-3 border-b border-gray-200">
-              <div>
-                <span className="font-semibold">Office:</span>{' '}
-                <span className="text-gray-600">{profile.office}</span>
-              </div>
-              {profile.skills && profile.skills.length > 0 && (
-                <div>
-                  <span className="font-semibold">Skills:</span>{' '}
-                  <span className="text-gray-600">
-                    {profile.skills.join(', ')}
-                  </span>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Bottom row: Read More + Request Button */}
-          <div className="flex items-center justify-between">
-            <button
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="text-[#1e3a5f] hover:text-[#2d5a8f] font-medium text-sm inline-flex items-center gap-1 transition-colors"
-            >
-              {isExpanded ? (
-                <>
-                  Read Less
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M5 15l7-7 7 7"
-                    />
-                  </svg>
-                </>
-              ) : (
-                <>
-                  Read More About {fullName}
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </>
-              )}
+              <svg
+                className="w-5 h-5 text-gray-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"
+                />
+              </svg>
             </button>
 
-            {/* Request Associate Button (always visible in list view per Figma) */}
-            <button className="px-4 py-2 bg-[#1e3a5f] hover:bg-[#2d5a8f] text-white rounded-lg font-medium text-sm transition-colors">
+            {/* Request Associate Button */}
+            <button className="px-5 py-2.5 bg-[#1e3a5f] hover:bg-[#2d5a8f] text-white rounded-lg font-semibold text-sm transition-colors whitespace-nowrap w-full md:w-auto">
               Request Associate
             </button>
           </div>
+
+          {/* Left on desktop, second on mobile: Name, Profession, Location */}
+          <div className="flex-1 min-w-0 md:order-1">
+            <h3 className="text-xl font-bold text-gray-900 mb-1">{fullName}</h3>
+            <p className="text-sm text-gray-600 mb-2">
+              {profile.profession_type?.toLowerCase() || 'property maintenance'}
+            </p>
+            <div className="flex items-center text-sm text-gray-600">
+              <svg
+                className="w-4 h-4 mr-1 flex-shrink-0"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                />
+              </svg>
+              {profile.city}, {profile.state} • {profile.zip_code}
+            </div>
+          </div>
         </div>
+
+        {/* Bio */}
+        <div className="text-sm text-gray-700 mb-4">
+          <p className="leading-relaxed">
+            {isExpanded ? cleanFullBio : bioSnippet}
+          </p>
+        </div>
+
+        {/* Stats (show when expanded) */}
+        {isExpanded && profile.office && (
+          <div className="text-sm text-gray-700 mb-4">
+            <span className="font-semibold">Office:</span>{' '}
+            <span className="text-gray-600">{profile.office}</span>
+          </div>
+        )}
+
+        {/* Read More/Less Button */}
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="text-[#1e3a5f] hover:text-[#2d5a8f] font-medium text-sm inline-flex items-center gap-1 transition-colors"
+        >
+          {isExpanded ? (
+            <>
+              Read Less
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 15l7-7 7 7"
+                />
+              </svg>
+            </>
+          ) : (
+            <>
+              Read More About {fullName}
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+            </>
+          )}
+        </button>
       </div>
     );
   }
@@ -197,7 +199,7 @@ export default function ProfileCard({
 
   return (
     <div
-      className={`bg-white rounded-lg shadow-sm hover:shadow-md transition-all p-5 border-l-4 ${colorClass} ${
+      className={`bg-white rounded-lg shadow-md hover:shadow-lg transition-all p-6 border-l-4 ${colorClass} ${
         isExpanded ? 'ring-2 ring-orange-200' : ''
       }`}
     >
@@ -211,11 +213,12 @@ export default function ProfileCard({
                 {fullName}
               </h3>
               <p className="text-sm text-gray-600">
-                {profile.profession_type || 'Property Maintenance'}
+                {profile.profession_type?.toLowerCase() ||
+                  'property maintenance'}
               </p>
             </div>
             <button
-              className="shrink-0 w-10 h-10 rounded-full bg-[#29456b] text-white flex items-center justify-center hover:bg-[#1e3a5f] transition-colors text-sm font-semibold"
+              className="shrink-0 w-10 h-10 rounded-full bg-[#3b5a7e] text-white flex items-center justify-center hover:bg-[#2d4a6e] transition-colors text-sm font-semibold"
               aria-label="Bookmark"
               title={`Bookmark ${fullName}`}
             >
@@ -224,7 +227,7 @@ export default function ProfileCard({
           </div>
 
           {/* Location */}
-          <div className="flex items-center text-sm text-gray-600 mb-3">
+          <div className="flex items-center text-sm text-gray-600 mb-4">
             <svg
               className="w-4 h-4 mr-1"
               fill="none"
@@ -248,7 +251,7 @@ export default function ProfileCard({
           </div>
 
           {/* Bio Snippet or Full Bio */}
-          <div className="text-sm text-gray-700 mb-3">
+          <div className="text-sm text-gray-700 mb-4">
             <p className="leading-relaxed">
               {isExpanded ? cleanFullBio : bioSnippet}
             </p>
@@ -256,7 +259,7 @@ export default function ProfileCard({
 
           {/* Stats Row */}
           {isExpanded && (
-            <div className="flex flex-wrap gap-4 text-sm text-gray-700 mb-3 pb-3 border-b border-gray-200">
+            <div className="flex flex-wrap gap-4 text-sm text-gray-700 mb-4 pb-3 border-b border-gray-200">
               <div>
                 <span className="font-semibold">Office:</span>{' '}
                 <span className="text-gray-600">{profile.office}</span>
