@@ -4,6 +4,7 @@ import SearchFilters from '@/components/search/SearchFilters';
 import ProfileResults from '@/components/search/ProfileResults';
 import EmptyState from '@/components/ui/EmptyState';
 import SearchParamsSyncer from '@/components/search/SearchParamsSyncer';
+import ScrollToTop from '@/components/ui/ScrollToTop';
 import { db } from '@/lib/db';
 
 export default async function Home({
@@ -35,14 +36,32 @@ export default async function Home({
       ? (params.sortDirection as 'asc' | 'desc')
       : 'asc';
 
-  // Fetch a larger batch (client will handle incremental display via "Show More")
-  const limit = 100; // Fetch up to 100 results, ProfileResults will show 5 at a time
-  const page = 1; // Always page 1 since we're doing client-side pagination
-
-  // Fetch profiles - either search or get all
-  let result;
+  // First, get the total count of matching profiles
   const hasFilters =
     keywords || city || state || professionType || office || zipCode;
+
+  let countResult;
+  if (hasFilters) {
+    countResult = await db.searchProfiles({
+      query: keywords,
+      city,
+      state,
+      zipCode,
+      radius,
+      professionType,
+      office,
+      page: 1,
+      limit: 1, // Just get the count, not the data
+      sortBy,
+      sortDirection,
+    });
+  } else {
+    countResult = await db.getAllProfiles(1, 1, sortBy, sortDirection);
+  }
+
+  // Now fetch ALL matching profiles using the total count
+  const totalCount = countResult.total;
+  let result;
 
   if (hasFilters) {
     result = await db.searchProfiles({
@@ -53,14 +72,32 @@ export default async function Home({
       radius,
       professionType,
       office,
-      page,
-      limit,
+      page: 1,
+      limit: totalCount || 1000, // Use actual total, fallback to 1000 if count is 0
       sortBy,
       sortDirection,
     });
   } else {
-    result = await db.getAllProfiles(page, limit, sortBy, sortDirection);
+    result = await db.getAllProfiles(
+      1,
+      totalCount || 1000,
+      sortBy,
+      sortDirection
+    );
   }
+
+  // Generate a unique key based on search parameters to force ProfileResults reset
+  const searchKey = JSON.stringify({
+    keywords,
+    city,
+    state,
+    zipCode,
+    radius,
+    professionType,
+    office,
+    sortBy,
+    sortDirection,
+  });
 
   return (
     <div className="bg-gray-50">
@@ -105,7 +142,11 @@ export default async function Home({
 
             {/* Profile Cards or Empty State */}
             {result.profiles.length > 0 ? (
-              <ProfileResults profiles={result.profiles} initialDisplay={5} />
+              <ProfileResults
+                key={searchKey}
+                profiles={result.profiles}
+                initialDisplay={5}
+              />
             ) : (
               <EmptyState
                 title="No candidates found"
@@ -121,6 +162,9 @@ export default async function Home({
           </div>
         </div>
       </section>
+
+      {/* Scroll to Top Button */}
+      <ScrollToTop />
     </div>
   );
 }

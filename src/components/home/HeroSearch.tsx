@@ -78,7 +78,7 @@ export default function HeroSearch() {
             className="flex flex-col md:flex-row gap-3 md:gap-2 items-stretch w-full max-w-3xl md:bg-white md:rounded-full md:shadow-2xl md:p-2"
           >
             {/* Profession Dropdown */}
-            <div className="flex-1 flex items-center px-4 py-3 min-w-0 bg-white rounded-full md:rounded-none shadow-lg md:shadow-none">
+            <div className="flex-1 flex items-center px-4 py-3 min-w-0 bg-white rounded-full shadow-lg md:shadow-none">
               <svg
                 className="w-5 h-5 text-gray-400 mr-3 flex-shrink-0"
                 fill="none"

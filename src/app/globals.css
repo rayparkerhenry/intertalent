@@ -84,6 +84,24 @@ body {
 }
 
 /**
+ * Global button cursor pointer
+ */
+button,
+[role='button'],
+input[type='submit'],
+input[type='button'],
+input[type='reset'],
+select {
+  cursor: pointer;
+}
+
+button:disabled,
+[role='button']:disabled,
+input:disabled {
+  cursor: not-allowed;
+}
+
+/**
  * Accessibility improvements
  */
 @layer utilities {
