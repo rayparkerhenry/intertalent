@@ -19,7 +19,10 @@ export default function SearchParamsSyncer() {
   const setCity = useSearchStore((state) => state.setCity);
   const setState = useSearchStore((state) => state.setState);
   const setZipCode = useSearchStore((state) => state.setZipCode);
-  const setKeywords = useSearchStore((state) => state.setKeywords);
+  const addKeyword = useSearchStore((state) => state.addKeyword);
+  const clearKeywords = useSearchStore((state) => state.clearKeywords);
+  const addZipCode = useSearchStore((state) => state.addZipCode);
+  const clearZipCodes = useSearchStore((state) => state.clearZipCodes);
   const setRadius = useSearchStore((state) => state.setRadius);
   const setRadiusEnabled = useSearchStore((state) => state.setRadiusEnabled);
   const setSelectedProfessions = useSearchStore(
@@ -32,14 +35,14 @@ export default function SearchParamsSyncer() {
 
   useEffect(() => {
     // Only sync once on mount or when URL changes
-    const paramsString = searchParams.toString();
 
     // Sync URL params to store
     const profession = searchParams.get('profession') || '';
     const city = searchParams.get('city') || '';
     const state = searchParams.get('state') || '';
     const zip = searchParams.get('zip') || '';
-    const keywords = searchParams.get('keywords') || '';
+    const keywordsParam = searchParams.get('keywords') || '';
+    const zipCodesParam = searchParams.get('zipCodes') || '';
     const radiusParam = searchParams.get('radius');
     const radius = radiusParam ? parseInt(radiusParam) : 10;
     const radiusEnabled = radiusParam !== null; // If radius in URL, it's enabled
@@ -52,7 +55,29 @@ export default function SearchParamsSyncer() {
     setCity(city);
     setState(state);
     setZipCode(zip);
-    setKeywords(keywords);
+
+    // Clear and rebuild keywords from URL
+    clearKeywords();
+    if (keywordsParam) {
+      const keywords = keywordsParam
+        .split(',')
+        .map((k) => k.trim())
+        .filter((k) => k.length > 0);
+      console.log('Syncing keywords from URL:', keywords);
+      keywords.forEach((keyword) => addKeyword(keyword));
+    }
+
+    // Clear and rebuild zip codes from URL
+    clearZipCodes();
+    if (zipCodesParam) {
+      const zipCodes = zipCodesParam
+        .split(',')
+        .map((z) => z.trim())
+        .filter((z) => z.length > 0);
+      console.log('Syncing zip codes from URL:', zipCodes);
+      zipCodes.forEach((zipCode) => addZipCode(zipCode));
+    }
+
     setRadius(radius);
     setRadiusEnabled(radiusEnabled);
     setSelectedProfessions(professions);

@@ -9,7 +9,11 @@ import type { ProfileSearchParams } from '@/lib/db';
  *   - profession: Filter by profession type (e.g., "RN", "CNA")
  *   - state: Filter by state code (e.g., "FL", "CA")
  *   - city: Filter by city name
- *   - keywords: Search in biography, skills, certifications
+ *   - keywords: Comma-separated keywords for OR search (e.g., "HVAC,plumber")
+ *   - zipCodes: Comma-separated zip codes for OR search (e.g., "60007,60016")
+ *   - zip: Single zip code (legacy support)
+ *   - radius: Search radius in miles
+ *   - office: Filter by office
  *   - page: Page number (default: 1)
  *   - limit: Results per page (default: 20, max: 100)
  */
@@ -36,8 +40,38 @@ export async function GET(request: NextRequest) {
     const city = searchParams.get('city');
     if (city) params.city = city;
 
-    const query = searchParams.get('keywords');
+    const office = searchParams.get('office');
+    if (office) params.office = office;
+
+    // Handle keywords - comma-separated string becomes array
+    const keywordsParam = searchParams.get('keywords');
+    if (keywordsParam) {
+      params.keywords = keywordsParam
+        .split(',')
+        .map((k) => k.trim())
+        .filter((k) => k);
+    }
+
+    // Handle zipCodes - comma-separated string becomes array
+    const zipCodesParam = searchParams.get('zipCodes');
+    if (zipCodesParam) {
+      params.zipCodes = zipCodesParam
+        .split(',')
+        .map((z) => z.trim())
+        .filter((z) => z);
+    }
+
+    // Legacy single keyword support (from hero search)
+    const query = searchParams.get('query');
     if (query) params.query = query;
+
+    // Legacy single zip code support (from hero search)
+    const zipCode = searchParams.get('zip');
+    if (zipCode) params.zipCode = zipCode;
+
+    // Radius search
+    const radius = searchParams.get('radius');
+    if (radius) params.radius = parseInt(radius);
 
     // Search profiles using abstraction layer
     const result = await db.searchProfiles(params);
@@ -50,7 +84,12 @@ export async function GET(request: NextRequest) {
           professionType: params.professionType || null,
           state: params.state || null,
           city: params.city || null,
+          office: params.office || null,
+          keywords: params.keywords || null,
+          zipCodes: params.zipCodes || null,
           query: params.query || null,
+          zipCode: params.zipCode || null,
+          radius: params.radius || null,
         },
         page: result.page,
         limit: result.limit,

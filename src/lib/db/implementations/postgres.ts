@@ -108,10 +108,12 @@ export class PostgresDatabase implements IDatabase {
   ): Promise<PaginatedProfiles> {
     const {
       query,
+      keywords,
       professionType,
       city,
       state,
       zipCode,
+      zipCodes,
       office,
       page = 1,
       limit = 20,
@@ -165,12 +167,29 @@ export class PostgresDatabase implements IDatabase {
       queryBuilder = queryBuilder.eq('office', office);
     }
 
-    // Keyword search in professional summary, name, and city
-    // Searches: bio text, first name, and city name (e.g., "HVAC" or "Ethan")
-    if (query) {
-      queryBuilder = queryBuilder.or(
-        `professional_summary.ilike.%${query}%,first_name.ilike.%${query}%,city.ilike.%${query}%`
-      );
+    // Multiple keyword search with OR logic
+    // Each keyword searches across: professional_summary, first_name, last_initial, city
+    // Multiple keywords are combined with OR (match ANY keyword)
+    const keywordsToSearch =
+      keywords && keywords.length > 0 ? keywords : query ? [query] : [];
+
+    if (keywordsToSearch.length > 0) {
+      // Build OR conditions: for each keyword, search across all fields
+      // Each keyword gets its own set of field searches, properly wildcarded
+      // Format: professional_summary.ilike.%kw1%,first_name.ilike.%kw1%,professional_summary.ilike.%kw2%,first_name.ilike.%kw2%
+      const allFieldConditions = keywordsToSearch
+        .flatMap((kw) => {
+          // For each keyword, create separate condition for each searchable field
+          return [
+            `professional_summary.ilike.%${kw}%`,
+            `first_name.ilike.%${kw}%`,
+            `last_initial.ilike.%${kw}%`,
+            `city.ilike.%${kw}%`,
+          ];
+        })
+        .join(',');
+
+      queryBuilder = queryBuilder.or(allFieldConditions);
     }
 
     // Handle geospatial radius search
@@ -203,7 +222,7 @@ export class PostgresDatabase implements IDatabase {
                 `Extracted state '${stateFilter}' from zip code ${zipCode}`
               );
             }
-          } catch (err) {
+          } catch {
             console.warn(`Could not extract state from zip ${zipCode}`);
           }
         }
@@ -251,10 +270,24 @@ export class PostgresDatabase implements IDatabase {
               if (office) {
                 optimizedQuery = optimizedQuery.eq('office', office);
               }
-              if (query) {
-                optimizedQuery = optimizedQuery.or(
-                  `professional_summary.ilike.%${query}%,first_name.ilike.%${query}%,city.ilike.%${query}%`
-                );
+
+              // Multiple keyword search with OR logic
+              const keywordsToSearch =
+                keywords && keywords.length > 0
+                  ? keywords
+                  : query
+                    ? [query]
+                    : [];
+              if (keywordsToSearch.length > 0) {
+                const allFieldConditions = keywordsToSearch
+                  .flatMap((kw) => [
+                    `professional_summary.ilike.%${kw}%`,
+                    `first_name.ilike.%${kw}%`,
+                    `last_initial.ilike.%${kw}%`,
+                    `city.ilike.%${kw}%`,
+                  ])
+                  .join(',');
+                optimizedQuery = optimizedQuery.or(allFieldConditions);
               }
 
               const { data: matchedProfiles } = await optimizedQuery;
@@ -306,10 +339,20 @@ export class PostgresDatabase implements IDatabase {
             if (office) {
               preFilterQuery = preFilterQuery.eq('office', office);
             }
-            if (query) {
-              preFilterQuery = preFilterQuery.or(
-                `professional_summary.ilike.%${query}%,first_name.ilike.%${query}%,city.ilike.%${query}%`
-              );
+
+            // Multiple keyword search with OR logic
+            const keywordsToSearch =
+              keywords && keywords.length > 0 ? keywords : query ? [query] : [];
+            if (keywordsToSearch.length > 0) {
+              const allFieldConditions = keywordsToSearch
+                .flatMap((kw) => [
+                  `professional_summary.ilike.%${kw}%`,
+                  `first_name.ilike.%${kw}%`,
+                  `last_initial.ilike.%${kw}%`,
+                  `city.ilike.%${kw}%`,
+                ])
+                .join(',');
+              preFilterQuery = preFilterQuery.or(allFieldConditions);
             }
 
             // CRITICAL: Smart filtering to reduce geocoding load while handling bad data
@@ -456,9 +499,14 @@ export class PostgresDatabase implements IDatabase {
           // Continue with search without radius filter
         }
       }
-    } else if (zipCode) {
+    } else if (zipCode || (zipCodes && zipCodes.length > 0)) {
       // Exact zip match if no radius specified
-      queryBuilder = queryBuilder.eq('zip_code', zipCode);
+      // Support multiple zip codes with OR logic
+      if (zipCodes && zipCodes.length > 0) {
+        queryBuilder = queryBuilder.in('zip_code', zipCodes);
+      } else if (zipCode) {
+        queryBuilder = queryBuilder.eq('zip_code', zipCode);
+      }
     }
 
     // FALLBACK: If radius search was attempted but failed (e.g., city not found),
@@ -482,6 +530,8 @@ export class PostgresDatabase implements IDatabase {
 
     if (error) {
       console.error('Error searching profiles:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
+      console.error('Query params:', JSON.stringify(params, null, 2));
       throw error;
     }
 

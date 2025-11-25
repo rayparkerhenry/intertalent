@@ -14,6 +14,8 @@ export default function HeroSearch() {
   const setProfession = useSearchStore((state) => state.setProfession);
   const setLocation = useSearchStore((state) => state.setLocation);
   const parseLocation = useSearchStore((state) => state.parseLocation);
+  const addZipCode = useSearchStore((state) => state.addZipCode);
+  const setZipCode = useSearchStore((state) => state.setZipCode);
   const buildQueryParams = useSearchStore((state) => state.buildQueryParams);
   const setIsLoading = useSearchStore((state) => state.setIsLoading);
 
@@ -40,9 +42,25 @@ export default function HeroSearch() {
     // Parse location before building query params
     parseLocation();
 
-    // Build query params from store
-    const params = buildQueryParams();
-    router.push(`/?${params.toString()}`);
+    // Small delay to ensure parseLocation has updated the store
+    setTimeout(() => {
+      // Get the latest zipCode from store after parsing
+      const currentZipCode = useSearchStore.getState().zipCode;
+
+      // If location was a zip code, add it to zipCodes array for tag display
+      if (currentZipCode) {
+        addZipCode(currentZipCode);
+        // Clear the legacy single zipCode field to avoid conflicts
+        setZipCode('');
+      }
+
+      // Clear the location input after adding to filters
+      setLocation('');
+
+      // Build query params from store
+      const params = buildQueryParams();
+      router.push(`/?${params.toString()}`);
+    }, 0);
   };
 
   return (

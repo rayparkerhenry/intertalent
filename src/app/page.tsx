@@ -18,6 +18,8 @@ export default async function Home({
   // Extract search parameters
   const keywords =
     typeof params.keywords === 'string' ? params.keywords : undefined;
+  const zipCodes =
+    typeof params.zipCodes === 'string' ? params.zipCodes : undefined;
   const city = typeof params.city === 'string' ? params.city : undefined;
   const state = typeof params.state === 'string' ? params.state : undefined;
   const zipCode = typeof params.zip === 'string' ? params.zip : undefined;
@@ -39,12 +41,35 @@ export default async function Home({
 
   // Single query to fetch all matching profiles
   const hasFilters =
-    keywords || city || state || professionType || office || zipCode;
+    keywords ||
+    city ||
+    state ||
+    professionType ||
+    office ||
+    zipCode ||
+    zipCodes;
 
   let result;
   if (hasFilters) {
+    // Parse keywords into array if it's a comma-separated string
+    const keywordsArray = keywords
+      ? keywords
+          .split(',')
+          .map((k) => k.trim())
+          .filter((k) => k)
+      : undefined;
+
+    // Parse zipCodes into array if it's a comma-separated string
+    const zipCodesArray = zipCodes
+      ? zipCodes
+          .split(',')
+          .map((z) => z.trim())
+          .filter((z) => z)
+      : undefined;
+
     result = await db.searchProfiles({
-      query: keywords,
+      keywords: keywordsArray,
+      zipCodes: zipCodesArray,
       city,
       state,
       zipCode,
@@ -63,6 +88,7 @@ export default async function Home({
   // Generate a unique key based on search parameters to force ProfileResults reset
   const searchKey = JSON.stringify({
     keywords,
+    zipCodes,
     city,
     state,
     zipCode,

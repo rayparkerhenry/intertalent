@@ -10,11 +10,13 @@ import type { Profile } from './supabase';
  * Search/Filter Parameters
  */
 export interface ProfileSearchParams {
-  query?: string; // Keyword search in professional summary
+  query?: string; // Single keyword (legacy, kept for hero search)
+  keywords?: string[]; // Multiple keywords for OR search
   professionType?: string;
   city?: string;
   state?: string;
   zipCode?: string;
+  zipCodes?: string[]; // Multiple zip codes for OR search
   radius?: number; // Radius in miles for zip code search
   office?: string;
   page?: number;

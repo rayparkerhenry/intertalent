@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useSearchStore } from '@/store/searchStore';
 
 interface SearchFiltersProps {
@@ -10,28 +10,37 @@ interface SearchFiltersProps {
 
 export default function SearchFilters({ className = '' }: SearchFiltersProps) {
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   const [professions, setProfessions] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Use Zustand store for filter state
+  // Local state for input values (what user is typing)
+  const [keywordInput, setKeywordInput] = useState('');
+  const [zipCodeInput, setZipCodeInput] = useState('');
+
+  // Use Zustand store for applied filter state (arrays of tags)
   const keywords = useSearchStore((state) => state.keywords);
-  const zipCode = useSearchStore((state) => state.zipCode);
+  const zipCodes = useSearchStore((state) => state.zipCodes);
   const radius = useSearchStore((state) => state.radius);
   const radiusEnabled = useSearchStore((state) => state.radiusEnabled);
   const selectedProfessions = useSearchStore(
     (state) => state.selectedProfessions
   );
 
-  const setKeywords = useSearchStore((state) => state.setKeywords);
-  const setZipCode = useSearchStore((state) => state.setZipCode);
+  const addKeyword = useSearchStore((state) => state.addKeyword);
+  const removeKeyword = useSearchStore((state) => state.removeKeyword);
+  const addZipCode = useSearchStore((state) => state.addZipCode);
+  const removeZipCode = useSearchStore((state) => state.removeZipCode);
   const setRadius = useSearchStore((state) => state.setRadius);
   const setRadiusEnabled = useSearchStore((state) => state.setRadiusEnabled);
   const toggleProfession = useSearchStore((state) => state.toggleProfession);
-  const clearFilters = useSearchStore((state) => state.clearFilters);
   const buildQueryParams = useSearchStore((state) => state.buildQueryParams);
   const setIsLoading = useSearchStore((state) => state.setIsLoading);
+
+  // Initialize local inputs from store on mount
+  useEffect(() => {
+    // No need to initialize from store - inputs start empty
+  }, []);
 
   // Fetch filter options on mount
   useEffect(() => {
@@ -52,22 +61,34 @@ export default function SearchFilters({ className = '' }: SearchFiltersProps) {
 
   const applyFilters = () => {
     setIsLoading(true);
-    const params = buildQueryParams();
-    router.push(`/?${params.toString()}`);
+
+    // Add keyword to array if input is not empty
+    if (keywordInput.trim()) {
+      addKeyword(keywordInput.trim());
+      setKeywordInput(''); // Clear input after adding
+    }
+
+    // Add zip code to array if input is not empty
+    if (zipCodeInput.trim()) {
+      addZipCode(zipCodeInput.trim());
+      setZipCodeInput(''); // Clear input after adding
+    }
+
+    // Use setTimeout to ensure state updates before building params
+    setTimeout(() => {
+      const params = buildQueryParams();
+      router.push(`/?${params.toString()}`);
+    }, 0);
   };
 
-  const handleClearFilters = () => {
-    setIsLoading(true);
-    clearFilters();
-    router.push('/');
+  const handleRemoveKeyword = (keyword: string) => {
+    // Just remove from array, don't trigger search
+    removeKeyword(keyword);
   };
 
-  const removeKeyword = () => {
-    setKeywords('');
-  };
-
-  const removeZipCode = () => {
-    setZipCode('');
+  const handleRemoveZipCode = (zipCode: string) => {
+    // Just remove from array, don't trigger search
+    removeZipCode(zipCode);
   };
 
   return (
@@ -82,37 +103,42 @@ export default function SearchFilters({ className = '' }: SearchFiltersProps) {
           </label>
           <input
             type="text"
-            value={keywords}
-            onChange={(e) => setKeywords(e.target.value)}
+            value={keywordInput}
+            onChange={(e) => setKeywordInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && applyFilters()}
             placeholder="Keyword"
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm text-gray-900 caret-gray-900"
           />
-          {/* Keyword Pill */}
-          {keywords && (
-            <div className="mt-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#1e3a5f] text-white text-xs font-medium rounded-full">
-                {keywords}
-                <button
-                  onClick={removeKeyword}
-                  className="hover:bg-white/20 rounded-full p-0.5 transition-colors"
-                  aria-label="Remove keyword"
+          {/* Keyword Pills - show all applied keywords */}
+          {keywords.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {keywords.map((keyword) => (
+                <span
+                  key={keyword}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#1e3a5f] text-white text-xs font-medium rounded-full"
                 >
-                  <svg
-                    className="w-3.5 h-3.5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+                  {keyword}
+                  <button
+                    onClick={() => handleRemoveKeyword(keyword)}
+                    className="hover:bg-white/20 rounded-full p-0.5 transition-colors"
+                    aria-label="Remove keyword"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2.5}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </button>
-              </span>
+                    <svg
+                      className="w-3.5 h-3.5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2.5}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                </span>
+              ))}
             </div>
           )}
         </div>
@@ -124,36 +150,42 @@ export default function SearchFilters({ className = '' }: SearchFiltersProps) {
           </label>
           <input
             type="text"
-            value={zipCode}
-            onChange={(e) => setZipCode(e.target.value)}
+            value={zipCodeInput}
+            onChange={(e) => setZipCodeInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && applyFilters()}
             placeholder="Zip Code"
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm text-gray-900 caret-gray-900"
           />
-          {/* Zip Code Pill */}
-          {zipCode && (
-            <div className="mt-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#1e3a5f] text-white text-xs font-medium rounded-full">
-                {zipCode}
-                <button
-                  onClick={removeZipCode}
-                  className="hover:bg-white/20 rounded-full p-0.5 transition-colors"
-                  aria-label="Remove zip code"
+          {/* Zip Code Pills - show all applied zip codes */}
+          {zipCodes.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {zipCodes.map((zipCode) => (
+                <span
+                  key={zipCode}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#1e3a5f] text-white text-xs font-medium rounded-full"
                 >
-                  <svg
-                    className="w-3.5 h-3.5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+                  {zipCode}
+                  <button
+                    onClick={() => handleRemoveZipCode(zipCode)}
+                    className="hover:bg-white/20 rounded-full p-0.5 transition-colors"
+                    aria-label="Remove zip code"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2.5}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </button>
-              </span>
+                    <svg
+                      className="w-3.5 h-3.5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2.5}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                </span>
+              ))}
             </div>
           )}
         </div>

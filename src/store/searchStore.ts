@@ -72,7 +72,8 @@ export interface SearchFilters {
   zipCode: string;
 
   // Filter sidebar fields
-  keywords: string;
+  keywords: string[]; // Array of keywords for multiple tags
+  zipCodes: string[]; // Array of zip codes for multiple tags
   radius: number;
   radiusEnabled: boolean; // Toggle for radius search
   selectedProfessions: string[];
@@ -92,7 +93,12 @@ interface SearchStore extends SearchFilters {
   setCity: (city: string) => void;
   setState: (state: string) => void;
   setZipCode: (zipCode: string) => void;
-  setKeywords: (keywords: string) => void;
+  addKeyword: (keyword: string) => void;
+  removeKeyword: (keyword: string) => void;
+  clearKeywords: () => void;
+  addZipCode: (zipCode: string) => void;
+  removeZipCode: (zipCode: string) => void;
+  clearZipCodes: () => void;
   setRadius: (radius: number) => void;
   setRadiusEnabled: (enabled: boolean) => void;
   setSelectedProfessions: (professions: string[]) => void;
@@ -117,7 +123,8 @@ const initialState: SearchFilters = {
   city: '',
   state: '',
   zipCode: '',
-  keywords: '',
+  keywords: [],
+  zipCodes: [],
   radius: 10,
   radiusEnabled: false, // Disabled by default for exact match
   selectedProfessions: [],
@@ -138,7 +145,37 @@ export const useSearchStore = create<SearchStore>()(
       setCity: (city) => set({ city }),
       setState: (state) => set({ state }),
       setZipCode: (zipCode) => set({ zipCode }),
-      setKeywords: (keywords) => set({ keywords }),
+
+      addKeyword: (keyword) =>
+        set((state) => ({
+          keywords:
+            keyword.trim() && !state.keywords.includes(keyword.trim())
+              ? [...state.keywords, keyword.trim()]
+              : state.keywords,
+        })),
+
+      removeKeyword: (keyword) =>
+        set((state) => ({
+          keywords: state.keywords.filter((k) => k !== keyword),
+        })),
+
+      clearKeywords: () => set({ keywords: [] }),
+
+      addZipCode: (zipCode) =>
+        set((state) => ({
+          zipCodes:
+            zipCode.trim() && !state.zipCodes.includes(zipCode.trim())
+              ? [...state.zipCodes, zipCode.trim()]
+              : state.zipCodes,
+        })),
+
+      removeZipCode: (zipCode) =>
+        set((state) => ({
+          zipCodes: state.zipCodes.filter((z) => z !== zipCode),
+        })),
+
+      clearZipCodes: () => set({ zipCodes: [] }),
+
       setRadius: (radius) => set({ radius }),
       setRadiusEnabled: (enabled) => set({ radiusEnabled: enabled }),
       setSelectedProfessions: (professions) =>
@@ -244,7 +281,16 @@ export const useSearchStore = create<SearchStore>()(
         if (state.city) params.set('city', state.city);
         if (state.state) params.set('state', state.state);
         if (state.zipCode) params.set('zip', state.zipCode);
-        if (state.keywords) params.set('keywords', state.keywords);
+
+        // Handle multiple keywords - join with comma
+        if (state.keywords.length > 0) {
+          params.set('keywords', state.keywords.join(','));
+        }
+
+        // Handle multiple zip codes - join with comma
+        if (state.zipCodes.length > 0) {
+          params.set('zipCodes', state.zipCodes.join(','));
+        }
 
         // Only add radius if it's enabled
         if (state.radiusEnabled && state.radius > 0) {
