@@ -139,7 +139,7 @@ export default function HeroSearch() {
                 placeholder="Zip, City or State"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
-                className="flex-1 outline-none text-gray-800 placeholder-gray-400 text-sm md:text-base min-w-0"
+                className="flex-1 outline-none text-gray-800 placeholder-gray-400 text-sm md:text-base min-w-0 caret-gray-800"
               />
             </div>
 

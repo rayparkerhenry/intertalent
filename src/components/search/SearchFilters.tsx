@@ -86,7 +86,7 @@ export default function SearchFilters({ className = '' }: SearchFiltersProps) {
             onChange={(e) => setKeywords(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && applyFilters()}
             placeholder="Keyword"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm text-gray-900 caret-gray-900"
           />
           {/* Keyword Pill */}
           {keywords && (
@@ -127,7 +127,7 @@ export default function SearchFilters({ className = '' }: SearchFiltersProps) {
             value={zipCode}
             onChange={(e) => setZipCode(e.target.value)}
             placeholder="Zip Code"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm text-gray-900 caret-gray-900"
           />
           {/* Zip Code Pill */}
           {zipCode && (
