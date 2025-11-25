@@ -87,39 +87,15 @@ export default function SearchFilters({ className = '' }: SearchFiltersProps) {
   };
 
   const handleRemoveKeyword = (keyword: string) => {
-    // Remove from array and trigger search
+    // Only remove from store - don't trigger search
+    // User must click "Apply Filter" to execute the search
     removeKeyword(keyword);
-
-    // Trigger search after state updates
-    setTimeout(() => {
-      const params = buildQueryParams();
-      const newSearch = params.toString();
-
-      // Only show loading and navigate if the search is different
-      const currentSearch = window.location.search.substring(1);
-      if (newSearch !== currentSearch) {
-        setIsLoading(true);
-        router.push(`/?${newSearch}`);
-      }
-    }, 50);
   };
 
   const handleRemoveZipCode = (zipCode: string) => {
-    // Remove from array and trigger search
+    // Only remove from store - don't trigger search
+    // User must click "Apply Filter" to execute the search
     removeZipCode(zipCode);
-
-    // Trigger search after state updates
-    setTimeout(() => {
-      const params = buildQueryParams();
-      const newSearch = params.toString();
-
-      // Only show loading and navigate if the search is different
-      const currentSearch = window.location.search.substring(1);
-      if (newSearch !== currentSearch) {
-        setIsLoading(true);
-        router.push(`/?${newSearch}`);
-      }
-    }, 50);
   };
 
   return (
