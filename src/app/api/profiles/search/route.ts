@@ -6,7 +6,7 @@ import type { ProfileSearchParams } from '@/lib/db';
  * GET /api/profiles/search
  * Search profiles with filters
  * Query params:
- *   - profession: Filter by profession type (e.g., "RN", "CNA")
+ *   - professions: Comma-separated profession types (e.g., "Maintenance,Concierge")
  *   - state: Filter by state code (e.g., "FL", "CA")
  *   - city: Filter by city name
  *   - keywords: Comma-separated keywords for OR search (e.g., "HVAC,plumber")
@@ -31,8 +31,13 @@ export async function GET(request: NextRequest) {
     };
 
     // Add optional filters
-    const professionType = searchParams.get('profession');
-    if (professionType) params.professionType = professionType;
+    const professionsParam = searchParams.get('professions');
+    if (professionsParam) {
+      params.professionTypes = professionsParam
+        .split(',')
+        .map((p) => p.trim())
+        .filter((p) => p);
+    }
 
     const state = searchParams.get('state');
     if (state) params.state = state;
@@ -81,7 +86,7 @@ export async function GET(request: NextRequest) {
       data: result,
       meta: {
         filters: {
-          professionType: params.professionType || null,
+          professionTypes: params.professionTypes || null,
           state: params.state || null,
           city: params.city || null,
           office: params.office || null,
