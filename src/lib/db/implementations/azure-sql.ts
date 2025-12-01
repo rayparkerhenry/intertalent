@@ -1,6 +1,6 @@
 /**
  * Azure SQL Database Implementation
- * Implements IDatabase interface using mssql driver
+ * Connects to InterTalentShowcase table with PascalCase columns
  */
 
 import sql from 'mssql';
@@ -20,6 +20,8 @@ import {
   getCityLocation,
 } from '../../geospatial';
 
+const TABLE_NAME = 'InterTalentShowcase';
+
 export class AzureSqlDatabase implements IDatabase {
   private pool: sql.ConnectionPool | null = null;
 
@@ -30,31 +32,59 @@ export class AzureSqlDatabase implements IDatabase {
     return this.pool;
   }
 
-  /**
-   * Convert SQL Server row to Profile type
-   */
-  private rowToProfile(row: Record<string, any>): Profile {
+  private parseName(fullName: string | null): {
+    first_name: string;
+    last_initial: string;
+  } {
+    if (!fullName || fullName.trim() === '') {
+      return { first_name: '', last_initial: '' };
+    }
+    const parts = fullName.trim().split(/\s+/);
+    if (parts.length === 1) {
+      return { first_name: parts[0], last_initial: '' };
+    }
+    const lastName = parts[parts.length - 1];
+    const firstName = parts.slice(0, -1).join(' ');
     return {
-      id: row.id,
-      first_name: row.first_name,
-      last_initial: row.last_initial,
-      city: row.city,
-      state: row.state,
-      zip_code: row.zip_code,
-      professional_summary: row.professional_summary,
-      office: row.office,
-      profession_type: row.profession_type,
-      skills: row.skills || null,
-      source_file: row.source_file || null,
-      is_active: row.is_active,
-      created_at: row.created_at,
-      updated_at: row.updated_at,
+      first_name: firstName,
+      last_initial: lastName.charAt(0).toUpperCase(),
     };
   }
 
-  /**
-   * Get all profiles with pagination and sorting
-   */
+  private rowToProfile(row: Record<string, unknown>): Profile {
+    const { first_name, last_initial } = this.parseName(row.Name as string);
+    const isActive =
+      row.Status === 'Active' ||
+      row.Status === 'active' ||
+      row.OnAssignment === true ||
+      row.OnAssignment === 1;
+
+    return {
+      id: String(row.PersonID),
+      first_name,
+      last_initial,
+      city: (row.City as string) || '',
+      state: (row.State as string) || '',
+      zip_code: (row.ZipCode as string) || '',
+      professional_summary: (row.ProfessionalSummary as string) || '',
+      office: (row.Office as string) || '',
+      profession_type: (row.ProfessionType as string) || '',
+      skills: row.Skill ? [row.Skill as string] : null,
+      source_file: null,
+      is_active: isActive,
+      created_at: row.HireDate
+        ? new Date(row.HireDate as string).toISOString()
+        : new Date().toISOString(),
+      updated_at: row.RunTime
+        ? new Date(row.RunTime as string).toISOString()
+        : new Date().toISOString(),
+    };
+  }
+
+  private getActiveCondition(): string {
+    return '1=1';
+  }
+
   async getAllProfiles(
     page: number = 1,
     limit: number = 20,
@@ -64,46 +94,40 @@ export class AzureSqlDatabase implements IDatabase {
     const pool = await this.getConnection();
     const offset = (page - 1) * limit;
 
-    // Determine sort column
     let sortColumn: string;
     switch (sortBy) {
       case 'name':
-        sortColumn = 'first_name';
+        sortColumn = 'Name';
         break;
       case 'location':
-        sortColumn = 'city';
+        sortColumn = 'City';
         break;
       case 'profession':
-        sortColumn = 'profession_type';
+        sortColumn = 'ProfessionType';
         break;
       default:
-        sortColumn = 'first_name';
+        sortColumn = 'Name';
     }
 
     const sortDir = sortDirection.toUpperCase();
+    const activeCondition = this.getActiveCondition();
 
-    // Get total count
-    const countResult = await pool.request().query(`
-      SELECT COUNT(*) as total
-      FROM profiles
-      WHERE is_active = 1
-    `);
+    const countResult = await pool
+      .request()
+      .query(
+        `SELECT COUNT(*) as total FROM ${TABLE_NAME} WHERE ${activeCondition}`
+      );
     const total = countResult.recordset[0].total;
 
-    // Get paginated data
     const dataResult = await pool
       .request()
       .input('offset', sql.Int, offset)
-      .input('limit', sql.Int, limit).query(`
-        SELECT *
-        FROM profiles
-        WHERE is_active = 1
-        ORDER BY ${sortColumn} ${sortDir}
-        OFFSET @offset ROWS
-        FETCH NEXT @limit ROWS ONLY
-      `);
+      .input('limit', sql.Int, limit)
+      .query(
+        `SELECT * FROM ${TABLE_NAME} WHERE ${activeCondition} ORDER BY ${sortColumn} ${sortDir} OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY`
+      );
 
-    const profiles = dataResult.recordset.map((row: any) =>
+    const profiles = dataResult.recordset.map((row: Record<string, unknown>) =>
       this.rowToProfile(row)
     );
 
@@ -116,30 +140,21 @@ export class AzureSqlDatabase implements IDatabase {
     };
   }
 
-  /**
-   * Get profile by ID
-   */
   async getProfileById(id: string): Promise<Profile | null> {
     const pool = await this.getConnection();
+    const activeCondition = this.getActiveCondition();
 
-    const result = await pool.request().input('id', sql.UniqueIdentifier, id)
-      .query(`
-        SELECT *
-        FROM profiles
-        WHERE id = @id AND is_active = 1
-      `);
+    const result = await pool
+      .request()
+      .input('id', sql.BigInt, parseInt(id, 10))
+      .query(
+        `SELECT * FROM ${TABLE_NAME} WHERE PersonID = @id AND ${activeCondition}`
+      );
 
-    if (result.recordset.length === 0) {
-      return null;
-    }
-
+    if (result.recordset.length === 0) return null;
     return this.rowToProfile(result.recordset[0]);
   }
 
-  /**
-   * Search profiles with filters
-   * Supports multiple keywords, multiple professions, and multiple zip codes (OR logic)
-   */
   async searchProfiles(
     params: ProfileSearchParams
   ): Promise<PaginatedProfiles> {
@@ -161,55 +176,40 @@ export class AzureSqlDatabase implements IDatabase {
     } = params;
 
     const offset = (page - 1) * limit;
-
-    // Build WHERE clause dynamically
-    const conditions: string[] = ['is_active = 1'];
+    const activeCondition = this.getActiveCondition();
+    const conditions: string[] = [activeCondition];
     const request = pool.request();
 
-    // Multiple keyword search with OR logic
-    // Each keyword searches across: professional_summary, first_name, last_initial, city
     const keywordsToSearch =
       keywords && keywords.length > 0 ? keywords : query ? [query] : [];
 
     if (keywordsToSearch.length > 0) {
-      // Build OR conditions for keywords across multiple fields
       const keywordConditions = keywordsToSearch
         .map((kw, index) => {
           const paramName = `keyword${index}`;
           request.input(paramName, sql.NVarChar(sql.MAX), `%${kw.trim()}%`);
-          return `(professional_summary LIKE @${paramName} OR first_name LIKE @${paramName} OR last_initial LIKE @${paramName} OR city LIKE @${paramName})`;
+          return `(ProfessionalSummary LIKE @${paramName} OR Name LIKE @${paramName} OR City LIKE @${paramName} OR Skill LIKE @${paramName})`;
         })
         .join(' OR ');
-
       conditions.push(`(${keywordConditions})`);
     }
 
-    // Multiple profession types with OR logic (case-insensitive)
     if (professionTypes && professionTypes.length > 0) {
       const professionConditions = professionTypes
         .map((prof, index) => {
           const paramName = `profession${index}`;
           request.input(paramName, sql.NVarChar(100), prof);
-          // SQL Server: LIKE is case-insensitive by default (depends on collation)
-          return `profession_type LIKE @${paramName}`;
+          return `ProfessionType LIKE @${paramName}`;
         })
         .join(' OR ');
-
       conditions.push(`(${professionConditions})`);
     }
 
-    // Handle geospatial radius search
-    let radiusFilteredIds: string[] | null = null;
     let radiusSearchAttempted = false;
     let radiusSearchSucceeded = false;
 
     if (radius && radius > 0) {
-      let centerLocation: string | null = null;
-      let stateFilter = state;
-
       radiusSearchAttempted = true;
-
-      // Aggregate all zip codes provided (allow multi-center searches)
       const centerZipCodes = Array.from(
         new Set([
           ...(zipCode ? [zipCode] : []),
@@ -218,50 +218,17 @@ export class AzureSqlDatabase implements IDatabase {
       );
 
       if (centerZipCodes.length > 0) {
-        console.log(
-          `Radius search with ${centerZipCodes.length} center zip code(s): ${centerZipCodes.join(', ')}`
-        );
-
-        if (!stateFilter) {
-          try {
-            const zipLocation = await getZipLocation(centerZipCodes[0]);
-            if (zipLocation && zipLocation.state) {
-              stateFilter = zipLocation.state;
-              console.log(
-                `Extracted state '${stateFilter}' from zip code ${centerZipCodes[0]}`
-              );
-            }
-          } catch {
-            console.warn(
-              `Could not extract state from zip ${centerZipCodes[0]}`
-            );
-          }
-        }
-      } else if (city) {
-        centerLocation = city;
-      }
-
-      if (centerZipCodes.length > 0) {
         try {
-          console.log(
-            `Attempting optimized zip code radius search for ${centerZipCodes.length} center(s) within ${radius} miles`
-          );
-
           const allNearbyZipCodesArrays = await Promise.all(
             centerZipCodes.map((centerZip) =>
               getZipCodesWithinRadius(centerZip, radius)
             )
           );
-
           const allNearbyZipCodes = Array.from(
             new Set(allNearbyZipCodesArrays.flatMap((zips) => zips ?? []))
           );
 
           if (allNearbyZipCodes.length > 0) {
-            console.log(
-              `Found ${allNearbyZipCodes.length} unique zip codes within radius from ${centerZipCodes.length} center(s)`
-            );
-
             const zipPlaceholders = allNearbyZipCodes
               .map((z, index) => {
                 const paramName = `radiusZip${index}`;
@@ -269,319 +236,194 @@ export class AzureSqlDatabase implements IDatabase {
                 return `@${paramName}`;
               })
               .join(', ');
-
-            conditions.push(`zip_code IN (${zipPlaceholders})`);
+            conditions.push(`ZipCode IN (${zipPlaceholders})`);
             radiusSearchSucceeded = true;
-          } else {
-            console.log(
-              'Zip code radius API not available - falling back to geocoding method'
-            );
-          }
-
-          if (!radiusSearchSucceeded) {
-            const preFilterConditions: string[] = ['is_active = 1'];
-            const preFilterRequest = pool.request();
-
-            if (professionTypes && professionTypes.length > 0) {
-              const professionConditions = professionTypes
-                .map((prof, index) => {
-                  const paramName = `preProf${index}`;
-                  preFilterRequest.input(paramName, sql.NVarChar(100), prof);
-                  return `profession_type LIKE @${paramName}`;
-                })
-                .join(' OR ');
-              preFilterConditions.push(`(${professionConditions})`);
-            }
-
-            if (keywordsToSearch.length > 0) {
-              const keywordConditions = keywordsToSearch
-                .map((kw, index) => {
-                  const paramName = `preKw${index}`;
-                  preFilterRequest.input(
-                    paramName,
-                    sql.NVarChar(sql.MAX),
-                    `%${kw.trim()}%`
-                  );
-                  return `(professional_summary LIKE @${paramName} OR first_name LIKE @${paramName} OR last_initial LIKE @${paramName} OR city LIKE @${paramName})`;
-                })
-                .join(' OR ');
-              preFilterConditions.push(`(${keywordConditions})`);
-            }
-
-            if (office) {
-              preFilterConditions.push('office = @preOffice');
-              preFilterRequest.input('preOffice', sql.NVarChar(100), office);
-            }
-
-            console.log(
-              `Zip-based radius search (fallback) - not filtering by state`
-            );
-
-            const preFilterWhereClause = preFilterConditions.join(' AND ');
-            const preFilterResult = await preFilterRequest.query(`
-              SELECT id, zip_code, city, state
-              FROM profiles
-              WHERE ${preFilterWhereClause}
-            `);
-
-            const filteredProfiles = preFilterResult.recordset;
-
-            if (filteredProfiles && filteredProfiles.length > 0) {
-              try {
-                const allRadiusFilteredIdsSet = new Set<string>();
-
-                for (const centerZip of centerZipCodes) {
-                  const idsForCenter = await getProfilesWithinRadius(
-                    centerZip,
-                    radius,
-                    filteredProfiles
-                  );
-                  idsForCenter.forEach((id) => allRadiusFilteredIdsSet.add(id));
-                  console.log(
-                    `Found ${idsForCenter.length} profiles within ${radius} miles of ${centerZip}`
-                  );
-                }
-
-                radiusFilteredIds = Array.from(allRadiusFilteredIdsSet);
-
-                if (radiusFilteredIds.length === 0) {
-                  return {
-                    profiles: [],
-                    total: 0,
-                    page,
-                    limit,
-                    totalPages: 0,
-                  };
-                }
-
-                const idPlaceholders = radiusFilteredIds
-                  .map((id, index) => {
-                    const paramName = `radiusId${index}`;
-                    request.input(paramName, sql.UniqueIdentifier, id);
-                    return `@${paramName}`;
-                  })
-                  .join(', ');
-
-                conditions.push(`id IN (${idPlaceholders})`);
-                radiusSearchSucceeded = true;
-              } catch (radiusError) {
-                console.error(
-                  'Radius search error - using pre-filtered profiles as fallback:',
-                  radiusError
-                );
-                radiusFilteredIds = filteredProfiles.map((p) => p.id);
-                radiusSearchSucceeded = true;
-              }
-            } else {
-              return {
-                profiles: [],
-                total: 0,
-                page,
-                limit,
-                totalPages: 0,
-              };
-            }
           }
         } catch (error) {
           console.error('Error in radius search:', error);
         }
-      } else if (centerLocation) {
-        try {
-          const preFilterConditions: string[] = ['is_active = 1'];
+
+        if (!radiusSearchSucceeded) {
           const preFilterRequest = pool.request();
+          const preFilterConditions: string[] = [activeCondition];
 
           if (professionTypes && professionTypes.length > 0) {
-            const professionConditions = professionTypes
+            const profConditions = professionTypes
               .map((prof, index) => {
-                const paramName = `preProf${index}`;
-                preFilterRequest.input(paramName, sql.NVarChar(100), prof);
-                return `profession_type LIKE @${paramName}`;
-              })
-              .join(' OR ');
-            preFilterConditions.push(`(${professionConditions})`);
-          }
-
-          if (keywordsToSearch.length > 0) {
-            const keywordConditions = keywordsToSearch
-              .map((kw, index) => {
-                const paramName = `preKw${index}`;
                 preFilterRequest.input(
-                  paramName,
-                  sql.NVarChar(sql.MAX),
-                  `%${kw.trim()}%`
+                  `preProf${index}`,
+                  sql.NVarChar(100),
+                  prof
                 );
-                return `(professional_summary LIKE @${paramName} OR first_name LIKE @${paramName} OR last_initial LIKE @${paramName} OR city LIKE @${paramName})`;
+                return `ProfessionType LIKE @preProf${index}`;
               })
               .join(' OR ');
-            preFilterConditions.push(`(${keywordConditions})`);
+            preFilterConditions.push(`(${profConditions})`);
           }
 
-          if (office) {
-            preFilterConditions.push('office = @preOffice');
-            preFilterRequest.input('preOffice', sql.NVarChar(100), office);
-          }
+          const preFilterResult = await preFilterRequest.query(
+            `SELECT PersonID as id, ZipCode as zip_code, City as city, State as state FROM ${TABLE_NAME} WHERE ${preFilterConditions.join(' AND ')}`
+          );
 
-          if (stateFilter && city) {
-            preFilterConditions.push('state = @preState');
-            preFilterRequest.input(
-              'preState',
-              sql.NVarChar(2),
-              stateFilter.toUpperCase()
-            );
-          } else if (city && !stateFilter) {
-            preFilterConditions.push('city LIKE @preCity');
-            preFilterRequest.input('preCity', sql.NVarChar(100), `%${city}%`);
-          }
+          const filteredProfiles = preFilterResult.recordset.map(
+            (row: Record<string, unknown>) => ({
+              id: String(row.id),
+              zip_code: row.zip_code as string,
+              city: row.city as string,
+              state: row.state as string,
+            })
+          );
 
-          const preFilterWhereClause = preFilterConditions.join(' AND ');
-          const preFilterResult = await preFilterRequest.query(`
-            SELECT id, zip_code, city, state
-            FROM profiles
-            WHERE ${preFilterWhereClause}
-          `);
-
-          const filteredProfiles = preFilterResult.recordset;
-
-          if (filteredProfiles && filteredProfiles.length > 0) {
-            try {
-              const centerCoords = await getCityLocation(city!, state);
-              if (!centerCoords) {
-                radiusFilteredIds = filteredProfiles.map((p) => p.id);
-              } else {
-                radiusFilteredIds = await getProfilesWithinRadius(
-                  centerLocation,
-                  radius,
-                  filteredProfiles,
-                  centerCoords
-                );
-              }
-
-              if (radiusFilteredIds.length === 0) {
-                return {
-                  profiles: [],
-                  total: 0,
-                  page,
-                  limit,
-                  totalPages: 0,
-                };
-              }
-
-              const idPlaceholders = radiusFilteredIds
-                .map((id, index) => {
-                  const paramName = `radiusId${index}`;
-                  request.input(paramName, sql.UniqueIdentifier, id);
-                  return `@${paramName}`;
-                })
-                .join(', ');
-
-              conditions.push(`id IN (${idPlaceholders})`);
-              radiusSearchSucceeded = true;
-            } catch (geoError) {
-              console.error('City-based radius search failed:', geoError);
-              radiusFilteredIds = filteredProfiles.map((p) => p.id);
-              radiusSearchSucceeded = true;
+          if (filteredProfiles.length > 0) {
+            const allRadiusFilteredIdsSet = new Set<string>();
+            for (const centerZip of centerZipCodes) {
+              const idsForCenter = await getProfilesWithinRadius(
+                centerZip,
+                radius,
+                filteredProfiles
+              );
+              idsForCenter.forEach((id) => allRadiusFilteredIdsSet.add(id));
             }
+            const radiusFilteredIds = Array.from(allRadiusFilteredIdsSet);
+
+            if (radiusFilteredIds.length === 0) {
+              return { profiles: [], total: 0, page, limit, totalPages: 0 };
+            }
+
+            const idPlaceholders = radiusFilteredIds
+              .map((id, index) => {
+                request.input(`radiusId${index}`, sql.BigInt, parseInt(id, 10));
+                return `@radiusId${index}`;
+              })
+              .join(', ');
+            conditions.push(`PersonID IN (${idPlaceholders})`);
+            radiusSearchSucceeded = true;
           } else {
-            return {
-              profiles: [],
-              total: 0,
-              page,
-              limit,
-              totalPages: 0,
-            };
+            return { profiles: [], total: 0, page, limit, totalPages: 0 };
           }
-        } catch (error) {
-          console.error('Error in city-based radius search:', error);
+        }
+      } else if (city) {
+        const preFilterRequest = pool.request();
+        const preFilterConditions: string[] = [activeCondition];
+
+        if (state) {
+          preFilterRequest.input(
+            'preState',
+            sql.NVarChar(2),
+            state.toUpperCase()
+          );
+          preFilterConditions.push('State = @preState');
+        }
+
+        const preFilterResult = await preFilterRequest.query(
+          `SELECT PersonID as id, ZipCode as zip_code, City as city, State as state FROM ${TABLE_NAME} WHERE ${preFilterConditions.join(' AND ')}`
+        );
+
+        const filteredProfiles = preFilterResult.recordset.map(
+          (row: Record<string, unknown>) => ({
+            id: String(row.id),
+            zip_code: row.zip_code as string,
+            city: row.city as string,
+            state: row.state as string,
+          })
+        );
+
+        if (filteredProfiles.length > 0) {
+          const centerCoords = await getCityLocation(city, state);
+          const radiusFilteredIds = centerCoords
+            ? await getProfilesWithinRadius(
+                city,
+                radius,
+                filteredProfiles,
+                centerCoords
+              )
+            : filteredProfiles.map((p) => p.id);
+
+          if (radiusFilteredIds.length === 0) {
+            return { profiles: [], total: 0, page, limit, totalPages: 0 };
+          }
+
+          const idPlaceholders = radiusFilteredIds
+            .map((id, index) => {
+              request.input(`radiusId${index}`, sql.BigInt, parseInt(id, 10));
+              return `@radiusId${index}`;
+            })
+            .join(', ');
+          conditions.push(`PersonID IN (${idPlaceholders})`);
+          radiusSearchSucceeded = true;
+        } else {
+          return { profiles: [], total: 0, page, limit, totalPages: 0 };
         }
       }
     } else if (zipCodes && zipCodes.length > 0) {
-      // Multiple zip codes with OR logic (for non-radius searches)
       const zipPlaceholders = zipCodes
         .map((z, index) => {
-          const paramName = `zip${index}`;
-          request.input(paramName, sql.NVarChar(10), z);
-          return `@${paramName}`;
+          request.input(`zip${index}`, sql.NVarChar(10), z);
+          return `@zip${index}`;
         })
         .join(', ');
-
-      conditions.push(`zip_code IN (${zipPlaceholders})`);
+      conditions.push(`ZipCode IN (${zipPlaceholders})`);
     } else if (zipCode) {
-      // Single zip code (legacy support)
-      conditions.push('zip_code = @zipCode');
       request.input('zipCode', sql.NVarChar(10), zipCode);
+      conditions.push('ZipCode = @zipCode');
     }
 
-    // Location filters (only if not doing radius search)
     const isRadiusSearch = radius && radius > 0;
-
     if (!isRadiusSearch) {
       if (city) {
-        conditions.push('city LIKE @city');
         request.input('city', sql.NVarChar(100), `%${city}%`);
+        conditions.push('City LIKE @city');
       }
-
       if (state) {
-        conditions.push('state = @state');
         request.input('state', sql.NVarChar(2), state.toUpperCase());
+        conditions.push('State = @state');
       }
     }
 
-    // FALLBACK: If radius search was attempted but failed
-    if (radiusSearchAttempted && !radiusSearchSucceeded) {
-      console.log('Radius search failed, applying state filter as fallback');
-      if (state) {
-        conditions.push('state = @fallbackState');
-        request.input('fallbackState', sql.NVarChar(2), state.toUpperCase());
-      }
+    if (radiusSearchAttempted && !radiusSearchSucceeded && state) {
+      request.input('fallbackState', sql.NVarChar(2), state.toUpperCase());
+      conditions.push('State = @fallbackState');
     }
 
     if (office) {
-      conditions.push('office = @office');
       request.input('office', sql.NVarChar(100), office);
+      conditions.push('Office = @office');
     }
 
     const whereClause = conditions.join(' AND ');
 
-    // Determine sort column
     let sortColumn: string;
     switch (sortBy) {
       case 'name':
-        sortColumn = 'first_name';
+        sortColumn = 'Name';
         break;
       case 'location':
-        sortColumn = 'city';
+        sortColumn = 'City';
         break;
       case 'profession':
-        sortColumn = 'profession_type';
+        sortColumn = 'ProfessionType';
         break;
       default:
-        sortColumn = 'first_name';
+        sortColumn = 'Name';
     }
 
     const sortDir = sortDirection.toUpperCase();
 
-    // Get total count
-    const countResult = await request.query(`
-      SELECT COUNT(*) as total
-      FROM profiles
-      WHERE ${whereClause}
-    `);
+    const countResult = await request.query(
+      `SELECT COUNT(*) as total FROM ${TABLE_NAME} WHERE ${whereClause}`
+    );
     const total = countResult.recordset[0].total;
 
-    // Get paginated data
     request.input('offset', sql.Int, offset);
     request.input('limit', sql.Int, limit);
 
-    const dataResult = await request.query(`
-      SELECT *
-      FROM profiles
-      WHERE ${whereClause}
-      ORDER BY ${sortColumn} ${sortDir}
-      OFFSET @offset ROWS
-      FETCH NEXT @limit ROWS ONLY
-    `);
+    const dataResult = await request.query(
+      `SELECT * FROM ${TABLE_NAME} WHERE ${whereClause} ORDER BY ${sortColumn} ${sortDir} OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY`
+    );
 
-    const profiles = dataResult.recordset.map((row) => this.rowToProfile(row));
+    const profiles = dataResult.recordset.map((row: Record<string, unknown>) =>
+      this.rowToProfile(row)
+    );
 
     return {
       profiles,
@@ -592,149 +434,131 @@ export class AzureSqlDatabase implements IDatabase {
     };
   }
 
-  /**
-   * Get distinct profession types
-   */
   async getProfessionTypes(): Promise<string[]> {
     const pool = await this.getConnection();
-
-    const result = await pool.request().query(`
-      SELECT DISTINCT profession_type
-      FROM profiles
-      WHERE is_active = 1
-      ORDER BY profession_type
-    `);
-
-    return result.recordset.map((row) => row.profession_type);
+    const result = await pool
+      .request()
+      .query(
+        `SELECT DISTINCT ProfessionType FROM ${TABLE_NAME} WHERE ${this.getActiveCondition()} AND ProfessionType IS NOT NULL AND ProfessionType != '' ORDER BY ProfessionType`
+      );
+    return result.recordset.map(
+      (row: Record<string, unknown>) => row.ProfessionType as string
+    );
   }
 
-  /**
-   * Get distinct states
-   */
   async getStates(): Promise<StateInfo[]> {
     const pool = await this.getConnection();
-
-    const result = await pool.request().query(`
-      SELECT DISTINCT state as code, state as name
-      FROM profiles
-      WHERE is_active = 1
-      ORDER BY state
-    `);
-
-    return result.recordset.map((row) => ({
-      code: row.code,
-      name: row.name,
+    const result = await pool
+      .request()
+      .query(
+        `SELECT DISTINCT State as code, State as name FROM ${TABLE_NAME} WHERE ${this.getActiveCondition()} AND State IS NOT NULL AND State != '' ORDER BY State`
+      );
+    return result.recordset.map((row: Record<string, unknown>) => ({
+      code: row.code as string,
+      name: row.name as string,
     }));
   }
 
-  /**
-   * Get distinct offices
-   */
   async getOffices(): Promise<OfficeInfo[]> {
     const pool = await this.getConnection();
-
-    const result = await pool.request().query(`
-      SELECT DISTINCT office as name, city, state
-      FROM profiles
-      WHERE is_active = 1
-      ORDER BY office
-    `);
-
-    return result.recordset.map((row) => ({
-      name: row.name,
-      city: row.city,
-      state: row.state,
+    const result = await pool
+      .request()
+      .query(
+        `SELECT DISTINCT Office as name, City as city, State as state FROM ${TABLE_NAME} WHERE ${this.getActiveCondition()} AND Office IS NOT NULL AND Office != '' ORDER BY Office`
+      );
+    return result.recordset.map((row: Record<string, unknown>) => ({
+      name: row.name as string,
+      city: row.city as string,
+      state: row.state as string,
     }));
   }
 
-  /**
-   * Insert profiles (for sync service)
-   */
   async insertProfiles(profiles: Profile[]): Promise<void> {
     const pool = await this.getConnection();
-
     for (const profile of profiles) {
+      const fullName = profile.last_initial
+        ? `${profile.first_name} ${profile.last_initial}.`
+        : profile.first_name;
       await pool
         .request()
-        .input('id', sql.UniqueIdentifier, profile.id)
-        .input('firstName', sql.NVarChar(100), profile.first_name)
-        .input('lastInitial', sql.NVarChar(1), profile.last_initial)
-        .input('city', sql.NVarChar(100), profile.city)
+        .input('name', sql.NVarChar(50), fullName)
+        .input('city', sql.NVarChar(50), profile.city)
         .input('state', sql.NVarChar(2), profile.state)
-        .input('zipCode', sql.NVarChar(10), profile.zip_code)
+        .input('zipCode', sql.VarChar(10), profile.zip_code)
         .input(
           'professionalSummary',
-          sql.NVarChar(sql.MAX),
+          sql.NVarChar(3000),
           profile.professional_summary
         )
-        .input('office', sql.NVarChar(100), profile.office)
-        .input('professionType', sql.NVarChar(100), profile.profession_type)
-        .query(`
-          INSERT INTO profiles (
-            id, first_name, last_initial, city, state, zip_code,
-            professional_summary, office, profession_type, is_active
-          ) VALUES (
-            @id, @firstName, @lastInitial, @city, @state, @zipCode,
-            @professionalSummary, @office, @professionType, 1
-          )
-        `);
+        .input('office', sql.NVarChar(50), profile.office)
+        .input('professionType', sql.NVarChar(50), profile.profession_type)
+        .input(
+          'skill',
+          sql.NVarChar(500),
+          profile.skills ? profile.skills.join(', ') : null
+        )
+        .input('status', sql.NVarChar(50), 'Active')
+        .input('runDate', sql.Date, new Date())
+        .input('runTime', sql.DateTime2, new Date())
+        .query(
+          `INSERT INTO ${TABLE_NAME} (Name, City, State, ZipCode, ProfessionalSummary, Office, ProfessionType, Skill, Status, RunDate, RunTime) VALUES (@name, @city, @state, @zipCode, @professionalSummary, @office, @professionType, @skill, @status, @runDate, @runTime)`
+        );
     }
   }
 
-  /**
-   * Update profile (for sync service)
-   */
   async updateProfile(id: string, data: Partial<Profile>): Promise<void> {
     const pool = await this.getConnection();
-    const request = pool.request().input('id', sql.UniqueIdentifier, id);
-
+    const request = pool.request().input('id', sql.BigInt, parseInt(id, 10));
     const updates: string[] = [];
 
     if (data.professional_summary !== undefined) {
-      updates.push('professional_summary = @professionalSummary');
+      updates.push('ProfessionalSummary = @professionalSummary');
       request.input(
         'professionalSummary',
-        sql.NVarChar(sql.MAX),
+        sql.NVarChar(3000),
         data.professional_summary
       );
     }
-
     if (data.office !== undefined) {
-      updates.push('office = @office');
-      request.input('office', sql.NVarChar(100), data.office);
+      updates.push('Office = @office');
+      request.input('office', sql.NVarChar(50), data.office);
     }
-
     if (data.profession_type !== undefined) {
-      updates.push('profession_type = @professionType');
-      request.input('professionType', sql.NVarChar(100), data.profession_type);
+      updates.push('ProfessionType = @professionType');
+      request.input('professionType', sql.NVarChar(50), data.profession_type);
+    }
+    if (data.zip_code !== undefined) {
+      updates.push('ZipCode = @zipCode');
+      request.input('zipCode', sql.VarChar(10), data.zip_code);
+    }
+    if (data.skills !== undefined) {
+      updates.push('Skill = @skill');
+      request.input(
+        'skill',
+        sql.NVarChar(500),
+        data.skills ? data.skills.join(', ') : null
+      );
     }
 
-    if (data.zip_code !== undefined) {
-      updates.push('zip_code = @zipCode');
-      request.input('zipCode', sql.NVarChar(10), data.zip_code);
-    }
+    updates.push('RunTime = @runTime');
+    request.input('runTime', sql.DateTime2, new Date());
 
     if (updates.length === 0) return;
-
-    await request.query(`
-      UPDATE profiles
-      SET ${updates.join(', ')}
-      WHERE id = @id
-    `);
+    await request.query(
+      `UPDATE ${TABLE_NAME} SET ${updates.join(', ')} WHERE PersonID = @id`
+    );
   }
 
-  /**
-   * Delete profiles (soft delete - set is_active = 0)
-   */
   async deleteProfiles(ids: string[]): Promise<void> {
     const pool = await this.getConnection();
-
     for (const id of ids) {
-      await pool.request().input('id', sql.UniqueIdentifier, id).query(`
-          UPDATE profiles
-          SET is_active = 0
-          WHERE id = @id
-        `);
+      await pool
+        .request()
+        .input('id', sql.BigInt, parseInt(id, 10))
+        .input('runTime', sql.DateTime2, new Date())
+        .query(
+          `UPDATE ${TABLE_NAME} SET Status = 'Inactive', RunTime = @runTime WHERE PersonID = @id`
+        );
     }
   }
 }
