@@ -9,6 +9,7 @@
     "start": "next start",
     "lint": "eslint",
     "test:db": "npx dotenv-cli -e .env.local -- npx tsx src/lib/db/test-connection.ts",
+    "test:azure": "npx dotenv-cli -e .env.local -- npx tsx src/lib/db/test-azure-sql.ts",
     "test:helpers": "npx dotenv-cli -e .env.local -- npx tsx src/lib/db/test-helpers.ts",
     "test:sync": "npx dotenv-cli -e .env.local -- npx tsx src/lib/sync/test-sync.ts",
     "seed": "npx dotenv-cli -e .env.local -- npx tsx src/lib/db/seed.ts",
