@@ -402,10 +402,18 @@ export class AzureSqlDatabase implements IDatabase {
       console.log(`  - ${c.zipCode}: (${c.lat}, ${c.lng})`)
     );
 
-    // Count total unique matches
-    const countResult = await pool.request().query(`
-      ${dedupeQuery.replace('SELECT *', 'SELECT COUNT(*) as total')}
-    `);
+    // Count total unique matches using a proper count query
+    const countQuery = `
+      WITH AllMatches AS (
+        ${centerQueries}
+      ),
+      RankedMatches AS (
+        SELECT PersonID, ROW_NUMBER() OVER (PARTITION BY PersonID ORDER BY distance_miles ASC) as rn
+        FROM AllMatches
+      )
+      SELECT COUNT(*) as total FROM RankedMatches WHERE rn = 1
+    `;
+    const countResult = await pool.request().query(countQuery);
     const total = countResult.recordset[0]?.total || 0;
 
     if (total === 0) {
