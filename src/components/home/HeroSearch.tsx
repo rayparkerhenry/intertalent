@@ -4,10 +4,30 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSearchStore } from '@/store/searchStore';
 
+// Constants for validation
+const MAX_LOCATION_LENGTH = 50;
+
+// Validate if input looks like a zip code attempt (starts with digits)
+const looksLikeZipCode = (value: string): boolean => {
+  return /^\d+$/.test(value.trim());
+};
+
+// Validate zip code format - must be exactly 5 digits
+const isValidZipCode = (zip: string): boolean => {
+  return /^\d{5}$/.test(zip.trim());
+};
+
+// Sanitize location input - remove special characters that could cause issues
+const sanitizeLocation = (value: string): string => {
+  // Allow letters, numbers, spaces, commas, periods, and hyphens
+  return value.replace(/[^a-zA-Z0-9\s,.-]/g, '').slice(0, MAX_LOCATION_LENGTH);
+};
+
 export default function HeroSearch() {
   const router = useRouter();
   const [professions, setProfessions] = useState<string[]>([]);
   const dropdownChangedRef = useRef(false); // Track if user changed the dropdown
+  const [locationError, setLocationError] = useState('');
 
   // Use Zustand store for state management
   const location = useSearchStore((state) => state.location);
@@ -44,6 +64,18 @@ export default function HeroSearch() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate location if it looks like a zip code
+    const trimmedLocation = location.trim();
+    if (trimmedLocation && looksLikeZipCode(trimmedLocation)) {
+      if (!isValidZipCode(trimmedLocation)) {
+        setLocationError('Please enter a valid 5-digit zip code');
+        return;
+      }
+    }
+
+    // Clear any previous error
+    setLocationError('');
 
     // Only update profession filters if the user explicitly changed the dropdown
     // Don't touch professions if dropdown is in "ambiguous" state (multiple selected in sidebar)
@@ -178,40 +210,64 @@ export default function HeroSearch() {
             <div className="hidden md:block w-px h-8 bg-gray-300 self-center"></div>
 
             {/* Location Input */}
-            <div className="flex-1 flex items-center px-4 py-3 min-w-0 bg-white rounded-full md:rounded-none shadow-lg md:shadow-none">
-              <svg
-                className="w-5 h-5 text-gray-400 mr-3 flex-shrink-0"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+            <div className="flex-1 flex flex-col min-w-0">
+              <div className="flex items-center px-4 py-3 bg-white rounded-full md:rounded-none shadow-lg md:shadow-none">
+                <svg
+                  className="w-5 h-5 text-gray-400 mr-3 flex-shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                  />
+                </svg>
+                <input
+                  type="text"
+                  placeholder="Zip, City or State"
+                  value={location}
+                  onChange={(e) => {
+                    const sanitized = sanitizeLocation(e.target.value);
+                    setLocation(sanitized);
+                    if (locationError) setLocationError('');
+                  }}
+                  onBlur={() => {
+                    // Validate on blur if it looks like a zip code
+                    const trimmed = location.trim();
+                    if (
+                      trimmed &&
+                      looksLikeZipCode(trimmed) &&
+                      !isValidZipCode(trimmed)
+                    ) {
+                      setLocationError('Please enter a valid 5-digit zip code');
+                    } else {
+                      setLocationError('');
+                      // Parse location immediately when user leaves the input field
+                      if (trimmed) {
+                        parseLocation();
+                      }
+                    }
+                  }}
+                  maxLength={MAX_LOCATION_LENGTH}
+                  className={`flex-1 outline-none text-gray-800 placeholder-gray-400 text-sm md:text-base min-w-0 caret-gray-800 ${
+                    locationError ? 'text-red-600' : ''
+                  }`}
                 />
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                />
-              </svg>
-              <input
-                type="text"
-                placeholder="Zip, City or State"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                onBlur={() => {
-                  // Parse location immediately when user leaves the input field
-                  // This ensures the store is always synced with the input value
-                  if (location.trim()) {
-                    parseLocation();
-                  }
-                }}
-                className="flex-1 outline-none text-gray-800 placeholder-gray-400 text-sm md:text-base min-w-0 caret-gray-800"
-              />
+              </div>
+              {locationError && (
+                <p className="mt-1 ml-4 text-xs text-red-400">
+                  {locationError}
+                </p>
+              )}
             </div>
 
             {/* Search Button */}

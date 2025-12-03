@@ -4,6 +4,20 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSearchStore } from '@/store/searchStore';
 
+// Constants for validation
+const MAX_KEYWORD_LENGTH = 50;
+const MIN_KEYWORD_LENGTH = 2;
+
+// Validate zip code - must be exactly 5 digits
+const isValidZipCode = (zip: string): boolean => {
+  return /^\d{5}$/.test(zip);
+};
+
+// Format zip code input - only allow digits, max 5
+const formatZipCodeInput = (value: string): string => {
+  return value.replace(/\D/g, '').slice(0, 5);
+};
+
 interface SearchFiltersProps {
   className?: string;
 }
@@ -17,6 +31,10 @@ export default function SearchFilters({ className = '' }: SearchFiltersProps) {
   // Local state for input values (what user is typing)
   const [keywordInput, setKeywordInput] = useState('');
   const [zipCodeInput, setZipCodeInput] = useState('');
+
+  // Validation error states
+  const [keywordError, setKeywordError] = useState('');
+  const [zipCodeError, setZipCodeError] = useState('');
 
   // Use Zustand store for applied filter state (arrays of tags)
   const keywords = useSearchStore((state) => state.keywords);
@@ -60,17 +78,52 @@ export default function SearchFilters({ className = '' }: SearchFiltersProps) {
   }, []);
 
   const applyFilters = () => {
-    // Add keyword to array if input is not empty
+    let hasError = false;
+
+    // Validate and add keyword
     if (keywordInput.trim()) {
-      addKeyword(keywordInput.trim());
-      setKeywordInput(''); // Clear input after adding
+      const trimmedKeyword = keywordInput.trim();
+
+      // Check minimum length
+      if (trimmedKeyword.length < MIN_KEYWORD_LENGTH) {
+        setKeywordError(
+          `Keyword must be at least ${MIN_KEYWORD_LENGTH} characters`
+        );
+        hasError = true;
+      }
+      // Check for duplicates
+      else if (
+        keywords.includes(trimmedKeyword.toLowerCase()) ||
+        keywords.some((k) => k.toLowerCase() === trimmedKeyword.toLowerCase())
+      ) {
+        setKeywordError('This keyword has already been added');
+        hasError = true;
+      } else {
+        addKeyword(trimmedKeyword);
+        setKeywordInput(''); // Clear input after adding
+        setKeywordError('');
+      }
     }
 
-    // Add zip code to array if input is not empty
+    // Validate and add zip code
     if (zipCodeInput.trim()) {
-      addZipCode(zipCodeInput.trim());
-      setZipCodeInput(''); // Clear input after adding
+      if (!isValidZipCode(zipCodeInput)) {
+        setZipCodeError('Please enter a valid 5-digit zip code');
+        hasError = true;
+      }
+      // Check for duplicates
+      else if (zipCodes.includes(zipCodeInput)) {
+        setZipCodeError('This zip code has already been added');
+        hasError = true;
+      } else {
+        addZipCode(zipCodeInput);
+        setZipCodeInput(''); // Clear input after adding
+        setZipCodeError('');
+      }
     }
+
+    // Don't navigate if there are validation errors
+    if (hasError) return;
 
     // Use setTimeout to ensure state updates before building params
     setTimeout(() => {
@@ -111,11 +164,21 @@ export default function SearchFilters({ className = '' }: SearchFiltersProps) {
           <input
             type="text"
             value={keywordInput}
-            onChange={(e) => setKeywordInput(e.target.value)}
+            onChange={(e) => {
+              const value = e.target.value.slice(0, MAX_KEYWORD_LENGTH);
+              setKeywordInput(value);
+              if (keywordError) setKeywordError('');
+            }}
             onKeyDown={(e) => e.key === 'Enter' && applyFilters()}
             placeholder="Keyword"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm text-gray-900 caret-gray-900"
+            maxLength={MAX_KEYWORD_LENGTH}
+            className={`w-full px-3 py-2 border rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm text-gray-900 caret-gray-900 ${
+              keywordError ? 'border-red-500' : 'border-gray-300'
+            }`}
           />
+          {keywordError && (
+            <p className="mt-1 text-xs text-red-500">{keywordError}</p>
+          )}
           {/* Keyword Pills - show all applied keywords */}
           {keywords.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-2">
@@ -158,11 +221,22 @@ export default function SearchFilters({ className = '' }: SearchFiltersProps) {
           <input
             type="text"
             value={zipCodeInput}
-            onChange={(e) => setZipCodeInput(e.target.value)}
+            onChange={(e) => {
+              const formatted = formatZipCodeInput(e.target.value);
+              setZipCodeInput(formatted);
+              if (zipCodeError) setZipCodeError('');
+            }}
             onKeyDown={(e) => e.key === 'Enter' && applyFilters()}
-            placeholder="Zip Code"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm text-gray-900 caret-gray-900"
+            placeholder="12345"
+            maxLength={5}
+            inputMode="numeric"
+            className={`w-full px-3 py-2 border rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm text-gray-900 caret-gray-900 ${
+              zipCodeError ? 'border-red-500' : 'border-gray-300'
+            }`}
           />
+          {zipCodeError && (
+            <p className="mt-1 text-xs text-red-500">{zipCodeError}</p>
+          )}
           {/* Zip Code Pills - show all applied zip codes */}
           {zipCodes.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-2">
