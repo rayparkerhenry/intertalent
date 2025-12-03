@@ -38,6 +38,14 @@ const isValidPhoneNumber = (phone: string): boolean => {
   return digits.length === 10;
 };
 
+// Validate email format
+const isValidEmail = (email: string): boolean => {
+  if (!email) return false; // Email is required
+  // Standard email regex pattern
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email.trim());
+};
+
 export default function ContactModal({
   isOpen,
   onClose,
@@ -55,6 +63,7 @@ export default function ContactModal({
   >('idle');
   const [officeEmail, setOfficeEmail] = useState<string>('');
   const [phoneError, setPhoneError] = useState<string>('');
+  const [emailError, setEmailError] = useState<string>('');
 
   const fullName = `${profile.first_name} ${profile.last_initial}.`;
 
@@ -80,6 +89,12 @@ export default function ContactModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate email before submission
+    if (!isValidEmail(formData.email)) {
+      setEmailError('Please enter a valid email address');
+      return;
+    }
 
     // Validate phone number before submission
     if (formData.phone && !isValidPhoneNumber(formData.phone)) {
@@ -122,6 +137,7 @@ export default function ContactModal({
     setFormData({ name: '', email: '', phone: '', comment: '' });
     setSubmitStatus('idle');
     setPhoneError('');
+    setEmailError('');
   };
 
   const handleClose = () => {
@@ -211,13 +227,26 @@ export default function ContactModal({
                 id="email"
                 required
                 value={formData.email}
-                onChange={(e) =>
-                  setFormData({ ...formData, email: e.target.value })
-                }
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e3a5f] focus:border-[#1e3a5f] outline-none transition-all"
+                onChange={(e) => {
+                  setFormData({ ...formData, email: e.target.value });
+                  // Clear error when user starts typing again
+                  if (emailError) setEmailError('');
+                }}
+                onBlur={() => {
+                  // Validate on blur
+                  if (formData.email && !isValidEmail(formData.email)) {
+                    setEmailError('Please enter a valid email address');
+                  }
+                }}
+                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#1e3a5f] focus:border-[#1e3a5f] outline-none transition-all ${
+                  emailError ? 'border-red-500' : 'border-gray-300'
+                }`}
                 placeholder="john@example.com"
                 disabled={isSubmitting}
               />
+              {emailError && (
+                <p className="mt-1 text-sm text-red-500">{emailError}</p>
+              )}
             </div>
 
             {/* Phone Field (Optional) */}
