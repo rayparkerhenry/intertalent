@@ -849,43 +849,63 @@ export class AzureSqlDatabase implements IDatabase {
    * For Azure SQL, we use the Office column from the main table to map to emails
    * Falls back to a default email if no specific mapping exists
    *
-   * Note: In a full implementation, you would create a location_emails table in Azure SQL.
-   * For now, we use a simple Office-to-email mapping.
+   * Queries the location_emails table in Azure SQL for office-to-email mappings.
    */
   async getLocationEmail(
     location: string
   ): Promise<{ email: string; isDefault: boolean }> {
-    // Office-to-email mapping (can be moved to a database table later)
-    const officeEmailMap: Record<string, string> = {
-      Baltimore: 'baltimore@intersolutions.com',
-      Cincinnati: 'cincinnati@intersolutions.com',
-      Chicago: 'chicago@intersolutions.com',
-      Denver: 'denver@intersolutions.com',
-      Phoenix: 'phoenix@intersolutions.com',
-      Atlanta: 'atlanta@intersolutions.com',
-      Dallas: 'dallas@intersolutions.com',
-      Houston: 'houston@intersolutions.com',
-      'Los Angeles': 'losangeles@intersolutions.com',
-      'New York': 'newyork@intersolutions.com',
-      Default: 'info@intersolutions.com',
-    };
-
-    // Case-insensitive lookup
+    const pool = await this.getPool();
     const normalizedLocation = location.trim();
-    const matchedKey = Object.keys(officeEmailMap).find(
-      (key) => key.toLowerCase() === normalizedLocation.toLowerCase()
-    );
 
-    if (matchedKey && matchedKey !== 'Default') {
+    try {
+      // Try exact match first (case-insensitive)
+      const exactResult = await pool
+        .request()
+        .input('market', sql.NVarChar, normalizedLocation).query(`
+          SELECT email FROM dbo.location_emails 
+          WHERE LOWER(market) = LOWER(@market)
+        `);
+
+      if (exactResult.recordset.length > 0) {
+        return {
+          email: exactResult.recordset[0].email,
+          isDefault: false,
+        };
+      }
+
+      // Try partial match (location contains market name or vice versa)
+      const partialResult = await pool
+        .request()
+        .input('market', sql.NVarChar, `%${normalizedLocation}%`).query(`
+          SELECT TOP 1 email, market FROM dbo.location_emails 
+          WHERE LOWER(market) LIKE LOWER(@market)
+             OR LOWER(@market) LIKE '%' + LOWER(market) + '%'
+          ORDER BY LEN(market) DESC
+        `);
+
+      if (partialResult.recordset.length > 0) {
+        return {
+          email: partialResult.recordset[0].email,
+          isDefault: false,
+        };
+      }
+
+      // Fallback to default
+      const defaultResult = await pool.request().query(`
+        SELECT email FROM dbo.location_emails WHERE market = 'Default'
+      `);
+
       return {
-        email: officeEmailMap[matchedKey],
-        isDefault: false,
+        email: defaultResult.recordset[0]?.email || 'info@intersolutions.com',
+        isDefault: true,
+      };
+    } catch (error) {
+      console.error('Error fetching location email:', error);
+      // Fallback if table doesn't exist or query fails
+      return {
+        email: 'info@intersolutions.com',
+        isDefault: true,
       };
     }
-
-    return {
-      email: officeEmailMap['Default'],
-      isDefault: true,
-    };
   }
 }
