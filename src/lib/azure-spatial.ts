@@ -55,7 +55,7 @@ export async function getZipCodesWithinRadiusAzure(
     console.log(
       `Azure SQL spatial query: ${radiusMiles} miles from ${centerZip} (${centerLocation.lat}, ${centerLocation.lng})`
     );
-
+            // Adjusted to follow logic of avoiding empty professional summaries and other statuses. 12/18/2025 MS 
     const result = await pool
       .request()
       .input('centerLat', sql.Float, centerLocation.lat)
@@ -67,6 +67,10 @@ export async function getZipCodesWithinRadiusAzure(
         FROM ${tableName}
         WHERE GeoLocation IS NOT NULL
           AND GeoLocation.STDistance(@center) <= @radiusMeters
+          AND ProfessionalSummary IS NOT NULL
+          AND LTRIM(RTRIM(ProfessionalSummary)) <> ''
+          AND Status = 'Active'
+          AND OnAssignment = 0
       `);
 
     const zipCodes = result.recordset
@@ -108,10 +112,20 @@ export async function getProfileIdsWithinRadiusAzure(
 
     const radiusMeters = radiusMiles * 1609.344;
     const pool = await getPool();
+    //added in where clause to prevent empty professional summaries - 12/15/2025 MS 
+    const baseConditions = `
+      GeoLocation IS NOT NULL
+      AND GeoLocation.STDistance(@center) <= @radiusMeters
+      AND ProfessionalSummary IS NOT NULL
+      AND LTRIM(RTRIM(ProfessionalSummary)) <> ''
+      AND Status = 'Active'
+      AND OnAssignment = 0
+    `;
 
     const whereClause = additionalConditions
-      ? `GeoLocation IS NOT NULL AND GeoLocation.STDistance(@center) <= @radiusMeters AND ${additionalConditions}`
-      : `GeoLocation IS NOT NULL AND GeoLocation.STDistance(@center) <= @radiusMeters`;
+      ? `${baseConditions} AND ${additionalConditions}`
+      : baseConditions;
+    
 
     const result = await pool
       .request()
@@ -207,11 +221,16 @@ export async function spatialProfileSearch(
     const pool = await getPool();
     const request = pool.request();
 
-    // Build conditions
+    // Build conditions * Added professional summary empty removal 12/15/2025 MS 
     const conditions: string[] = [
       'GeoLocation IS NOT NULL',
       'GeoLocation.STDistance(@center) <= @radiusMeters',
+      'ProfessionalSummary IS NOT NULL',
+      "LTRIM(RTRIM(ProfessionalSummary)) <> ''",
+      "Status = 'Active'",
+      'OnAssignment = 0',
     ];
+
 
     request.input('centerLat', sql.Float, centerLocation.lat);
     request.input('centerLng', sql.Float, centerLocation.lng);

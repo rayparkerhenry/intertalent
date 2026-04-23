@@ -4,7 +4,7 @@ import { useState, useCallback } from 'react';
 import ProfileCard from '@/components/profiles/ProfileCard';
 import ShowMoreButton from './ShowMoreButton';
 import { useSearchStore } from '@/store/searchStore';
-import type { Profile } from '@/lib/db/supabase';
+import type { Profile } from '@/lib/db';
 
 interface ProfileResultsProps {
   profiles: Profile[];

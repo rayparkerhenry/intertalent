@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import type { Profile } from '@/lib/db/supabase';
+import type { Profile } from '@/lib/db';
 import { useSearchStore } from '@/store/searchStore';
-import ContactModal from '@/components/contact/ContactModal';
+import RequestTalentModal from '@/components/modals/RequestTalentModal';
 import { highlightKeywords } from '@/utils/highlightText';
 
 interface ProfileCardProps {
@@ -16,7 +16,12 @@ export default function ProfileCard({
   variant = 'grid',
 }: ProfileCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [isContactModalOpen, setIsContactModalOpen] = useState(false);
+  const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
+
+  const capitalizeFirst = (value?: string) => {
+  if (!value) return '';
+  return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+};
 
   // Bookmark state from Zustand store
   const bookmarkedIds = useSearchStore((state) => state.bookmarkedIds);
@@ -120,7 +125,7 @@ export default function ProfileCard({
 
               {/* Request Associate Button */}
               <button
-                onClick={() => setIsContactModalOpen(true)}
+                onClick={() => setIsRequestModalOpen(true)}
                 className="px-5 py-2.5 bg-[#1e3a5f] hover:bg-[#2d5a8f] text-white rounded-lg font-semibold text-sm transition-colors whitespace-nowrap w-full md:w-auto"
               >
                 Request Associate
@@ -133,8 +138,7 @@ export default function ProfileCard({
                 {fullName}
               </h3>
               <p className="text-sm text-gray-600 mb-2">
-                {profile.profession_type?.toLowerCase() ||
-                  'property maintenance'}
+                {capitalizeFirst(profile.profession_type) || 'Property maintenance'}
               </p>
               <div className="flex items-center text-sm text-gray-600">
                 <svg
@@ -156,7 +160,7 @@ export default function ProfileCard({
                     d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
                   />
                 </svg>
-                {profile.city}, {profile.state} • {profile.zip_code}
+                {profile.city}, {profile.state} {/* • {profile.zip_code}  commented out 12/10/25 MS */}
               </div>
             </div>
           </div>
@@ -221,12 +225,21 @@ export default function ProfileCard({
           </button>
         </div>
 
-        {/* Contact Modal */}
-        <ContactModal
-          isOpen={isContactModalOpen}
-          onClose={() => setIsContactModalOpen(false)}
-          profile={profile}
-        />
+        {/* Request Talent Modal */}
+        {isRequestModalOpen && (
+          <RequestTalentModal
+            onClose={() => setIsRequestModalOpen(false)}
+
+            // context from profile
+            location={profile.office ?? undefined}
+            associateId={profile.id}
+            associateName={`${profile.first_name} ${profile.last_initial}.`}
+            personId={profile.id}
+
+            requestMode="ASSOCIATE"
+            campaign="Generic"
+          />
+        )}
       </>
     );
   }
@@ -249,8 +262,7 @@ export default function ProfileCard({
                 {fullName}
               </h3>
               <p className="text-sm text-gray-600">
-                {profile.profession_type?.toLowerCase() ||
-                  'property maintenance'}
+                {capitalizeFirst(profile.profession_type) || 'Property maintenance'}
               </p>
             </div>
             <button
@@ -283,7 +295,7 @@ export default function ProfileCard({
                 d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
               />
             </svg>
-            {profile.city}, {profile.state} • {profile.zip_code}
+            {profile.city}, {profile.state}  {/*• {profile.zip_code} commented out 12/10/25 MS */}
           </div>
 
           {/* Bio Snippet or Full Bio */}
@@ -359,7 +371,7 @@ export default function ProfileCard({
             {/* Request Associate Button (show when expanded) */}
             {isExpanded && (
               <button
-                onClick={() => setIsContactModalOpen(true)}
+                onClick={() => setIsRequestModalOpen(true)}
                 className="px-4 py-2 bg-[#1e3a5f] hover:bg-[#2d5a8f] text-white rounded-lg font-medium text-sm transition-colors"
               >
                 Request Associate
@@ -369,12 +381,21 @@ export default function ProfileCard({
         </div>
       </div>
 
-      {/* Contact Modal */}
-      <ContactModal
-        isOpen={isContactModalOpen}
-        onClose={() => setIsContactModalOpen(false)}
-        profile={profile}
-      />
+      {/* Request Talent Modal */}
+      {isRequestModalOpen && (
+        <RequestTalentModal
+          onClose={() => setIsRequestModalOpen(false)}
+
+          // context from profile
+          location={profile.office ?? undefined}
+          associateId={profile.id}
+          associateName={`${profile.first_name} ${profile.last_initial}.`}
+          personId={profile.id}
+
+          requestMode="ASSOCIATE"
+          campaign="Generic"
+        />
+      )}
     </div>
   );
 }

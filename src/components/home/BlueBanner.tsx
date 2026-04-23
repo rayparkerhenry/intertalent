@@ -20,7 +20,7 @@ export default function BlueBanner() {
               My Bookmarked Professionals
             </span>
           ) : (
-            'Find the right Maintenance Professional to complete the job.'
+            'Find the right Professional to complete the job.'
           )}
         </p>
 

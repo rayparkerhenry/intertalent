@@ -4,23 +4,9 @@
  */
 
 import sql from 'mssql';
+import { getMssqlPooledConfig } from '../sql-config';
 
-const config: sql.config = {
-  server: process.env.AZURE_SQL_SERVER || 'ipsql2025.database.windows.net',
-  database: process.env.AZURE_SQL_DATABASE || 'intertalent_DB',
-  user: process.env.AZURE_SQL_USER,
-  password: process.env.AZURE_SQL_PASSWORD,
-  options: {
-    encrypt: true, // Required for Azure
-    enableArithAbort: true,
-    trustServerCertificate: false,
-  },
-  pool: {
-    max: 10,
-    min: 0,
-    idleTimeoutMillis: 30000,
-  },
-};
+const config: sql.config = getMssqlPooledConfig();
 
 let pool: sql.ConnectionPool | null = null;
 

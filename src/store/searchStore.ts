@@ -85,6 +85,15 @@ export interface SearchFilters {
   bookmarkedIds: string[];
   showBookmarksOnly: boolean;
 
+  // Office / property name filter (hero fallback when property has no zip/city)
+  office: string;
+
+  /** Client portal: selected property id mirrored in URL (?propertyId=) */
+  propertyId: number | null;
+
+  sortBy: 'name' | 'location' | 'profession';
+  sortDirection: 'asc' | 'desc';
+
   // Loading state
   isLoading: boolean;
 }
@@ -111,6 +120,8 @@ interface SearchStore extends SearchFilters {
   // Bookmark actions
   toggleBookmark: (profileId: string) => void;
   setShowBookmarksOnly: (show: boolean) => void;
+  setOffice: (office: string) => void;
+  setPropertyId: (id: number | null) => void;
 
   // Loading actions
   setIsLoading: (loading: boolean) => void;
@@ -131,13 +142,17 @@ const initialState: SearchFilters = {
   zipCode: '',
   keywords: [],
   zipCodes: [],
-  radius: 10,
-  radiusEnabled: false, // Disabled by default for exact match
+  radius: 15, // reduced from 25 to 15 per message from EMyket on 3/6/25 in Emily and Eddie Chat.
+  radiusEnabled: true, // Enabled by default to show more associates on search MS 3/6/25 Awaiting approval
   selectedProfessions: [],
   professionsList: [],
   professionsLoading: false,
   bookmarkedIds: [],
   showBookmarksOnly: false,
+  office: '',
+  propertyId: null,
+  sortBy: 'name',
+  sortDirection: 'asc',
   isLoading: false,
 };
 
@@ -173,6 +188,8 @@ export const useSearchStore = create<SearchStore>()(
             zipCode.trim() && !state.zipCodes.includes(zipCode.trim())
               ? [...state.zipCodes, zipCode.trim()]
               : state.zipCodes,
+            radiusEnabled: true, // added on 3/9/26 by MS to fix radius toggle on search
+            radius: 15, // added to set radius of 15 miles on search by zipcode
         })),
 
       removeZipCode: (zipCode) =>
@@ -219,6 +236,15 @@ export const useSearchStore = create<SearchStore>()(
 
       setShowBookmarksOnly: (show) => set({ showBookmarksOnly: show }),
 
+      setOffice: (office) => set({ office: office.trim() }),
+
+      setPropertyId: (id) => set({ propertyId: id }),
+
+      setSortBy: (sortBy: 'name' | 'location' | 'profession') =>
+        set({ sortBy }),
+      setSortDirection: (sortDirection: 'asc' | 'desc') =>
+        set({ sortDirection }),
+
       setIsLoading: (loading) => set({ isLoading: loading }),
 
       fetchProfessions: async () => {
@@ -232,8 +258,12 @@ export const useSearchStore = create<SearchStore>()(
         try {
           const res = await fetch('/api/professions');
           const data = await res.json();
+          // Filter out "Internal" profession type from the list
+          const filteredProfessions = (data.data || []).filter(
+            (prof: string) => prof.toLowerCase() !== 'internal'
+          );
           set({
-            professionsList: data.data || [],
+            professionsList: filteredProfessions,
             professionsLoading: false,
           });
         } catch (error) {
@@ -247,6 +277,7 @@ export const useSearchStore = create<SearchStore>()(
           ...initialState,
           bookmarkedIds: get().bookmarkedIds, // Keep bookmarks when clearing filters
           professionsList: get().professionsList, // Keep professions list when clearing
+          propertyId: null,
         }),
 
       /**
@@ -324,6 +355,11 @@ export const useSearchStore = create<SearchStore>()(
         if (state.city) params.set('city', state.city);
         if (state.state) params.set('state', state.state);
         if (state.zipCode) params.set('zip', state.zipCode);
+        if (state.office) params.set('office', state.office);
+
+        if (state.propertyId) {
+          params.set('propertyId', String(state.propertyId));
+        }
 
         // Handle multiple keywords - join with comma
         if (state.keywords.length > 0) {
@@ -346,6 +382,13 @@ export const useSearchStore = create<SearchStore>()(
         }
         if (state.showBookmarksOnly) params.set('bookmarks', 'true');
 
+        if (state.sortBy && state.sortBy !== 'name') {
+          params.set('sortBy', state.sortBy);
+        }
+        if (state.sortDirection && state.sortDirection !== 'asc') {
+          params.set('sortDirection', state.sortDirection);
+        }
+
         return params;
       },
     }),
@@ -355,6 +398,7 @@ export const useSearchStore = create<SearchStore>()(
         // Only persist bookmarks and radius preference
         bookmarkedIds: state.bookmarkedIds,
         radius: state.radius,
+        radiusEnabled: state.radiusEnabled, // added to keep toggle active on 3/6/25 by MS 
       }),
     }
   )

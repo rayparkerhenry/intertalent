@@ -11,11 +11,12 @@ Prerequisites:
 Usage:
     python populate_geolocation.py
 
-Environment Variables (or edit the config below):
-    AZURE_SQL_SERVER=ipsql2025.database.windows.net
-    AZURE_SQL_DATABASE=intertalent_DB
-    AZURE_SQL_USER=your_username
-    AZURE_SQL_PASSWORD=your_password
+Environment variables:
+    DB_SERVER=ipsql2025.database.windows.net
+    DB_NAME=intertalent_DB
+    DB_USER=your_username
+    DB_PASSWORD=your_password
+    (Legacy: INTERTALENT_SQL_* / AZURE_SQL_* are also supported.)
 
 The script will:
 1. Fetch all unique zip codes that don't have GeoLocation set
@@ -35,12 +36,20 @@ from pathlib import Path
 # ============================================
 # CONFIGURATION - Update these values
 # ============================================
+def _env_db(*keys: str, default: str = '') -> str:
+    for k in keys:
+        v = os.getenv(k)
+        if v:
+            return v
+    return default
+
+
 CONFIG = {
-    'server': os.getenv('AZURE_SQL_SERVER', 'ipsql2025.database.windows.net'),
-    'database': os.getenv('AZURE_SQL_DATABASE', 'intertalent_DB'),
-    'username': os.getenv('AZURE_SQL_USER', 'YOUR_USERNAME_HERE'),
-    'password': os.getenv('AZURE_SQL_PASSWORD', 'YOUR_PASSWORD_HERE'),
-    'table_name': 'InterTalentShowcase',  # Change to your table name
+    'server': _env_db('DB_SERVER', 'INTERTALENT_SQL_SERVER', 'AZURE_SQL_SERVER', default='ipsql2025.database.windows.net'),
+    'database': _env_db('DB_NAME', 'INTERTALENT_SQL_DATABASE', 'AZURE_SQL_DATABASE', default='intertalent_DB'),
+    'username': _env_db('DB_USER', 'INTERTALENT_SQL_USER', 'AZURE_SQL_USER'),
+    'password': _env_db('DB_PASSWORD', 'INTERTALENT_SQL_PASSWORD', 'AZURE_SQL_PASSWORD'),
+    'table_name': 'RayTestShowcase',  # Change to your table name
     'cache_file': 'zip_coordinates_cache.json',
     'api_delay': 0.1,  # Seconds between API calls (rate limiting)
 }

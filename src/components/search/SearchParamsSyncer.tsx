@@ -6,13 +6,13 @@
 
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useSearchStore } from '@/store/searchStore';
+import { useCampaignStore } from '@/store/campaignStore'
 
 export default function SearchParamsSyncer() {
   const searchParams = useSearchParams();
-  const hasInitialized = useRef(false);
 
   // Extract only setters (stable references)
   const setCity = useSearchStore((state) => state.setCity);
@@ -32,6 +32,13 @@ export default function SearchParamsSyncer() {
     (state) => state.setShowBookmarksOnly
   );
 
+  // added on 4/15 by MS for TT campaign param pasthrough 
+  const setCampaign = useCampaignStore((s) => s.setCampaign);
+  const setHydrated = useCampaignStore((s) => s.setHydrated);
+  //merged on 4/16 by MS 
+  const setOffice = useSearchStore((state) => state.setOffice);
+  const setPropertyId = useSearchStore((state) => state.setPropertyId);
+
   useEffect(() => {
     // Only sync once on mount or when URL changes
 
@@ -42,7 +49,8 @@ export default function SearchParamsSyncer() {
     const keywordsParam = searchParams.get('keywords') || '';
     const zipCodesParam = searchParams.get('zipCodes') || '';
     const radiusParam = searchParams.get('radius');
-    const radius = radiusParam ? parseInt(radiusParam) : 10;
+    const parsedRadius = radiusParam ? parseInt(radiusParam, 10) : NaN;
+    const radius = Number.isFinite(parsedRadius) && parsedRadius > 0 ? parsedRadius : 15;
     const radiusEnabled = radiusParam !== null; // If radius in URL, it's enabled
     const professionsParam = searchParams.get('professions') || '';
     const professions = professionsParam
@@ -52,11 +60,42 @@ export default function SearchParamsSyncer() {
           .filter(Boolean)
       : [];
     const showBookmarks = searchParams.get('bookmarks') === 'true';
+    const officeParam = searchParams.get('office') || '';
+    const propertyIdParam = searchParams.get('propertyId');
+    const propertyId =
+      propertyIdParam && /^\d+$/.test(propertyIdParam)
+        ? Number(propertyIdParam)
+        : null;
+
+    // added on 4/15 by MS for TT campaign param pasthrough 
+    const contactName = searchParams.get('contactName');
+    const customerName = searchParams.get('customerName');
+    const department = searchParams.get('department');
+    const campaignLocation = searchParams.get('location');
+
+    const hasCampaignParams =
+      contactName || customerName || department || campaignLocation;
+
+    // 👇 THEN session fallback
+    if (!hasCampaignParams) {
+      const stored = sessionStorage.getItem('campaignData');
+
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          setCampaign(parsed);
+        } catch {
+          console.warn('Failed to parse session campaign data');
+        }
+      }
+    }
+
 
     // Update store (these are stable functions)
     setCity(city);
     setState(state);
     setZipCode(zip);
+    setOffice(officeParam);
 
     // Clear and rebuild keywords from URL
     clearKeywords();
@@ -65,7 +104,6 @@ export default function SearchParamsSyncer() {
         .split(',')
         .map((k) => k.trim())
         .filter((k) => k.length > 0);
-      console.log('Syncing keywords from URL:', keywords);
       keywords.forEach((keyword) => addKeyword(keyword));
     }
 
@@ -76,7 +114,6 @@ export default function SearchParamsSyncer() {
         .split(',')
         .map((z) => z.trim())
         .filter((z) => z.length > 0);
-      console.log('Syncing zip codes from URL:', zipCodes);
       zipCodes.forEach((zipCode) => addZipCode(zipCode));
     }
 
@@ -84,8 +121,19 @@ export default function SearchParamsSyncer() {
     setRadiusEnabled(radiusEnabled);
     setSelectedProfessions(professions);
     setShowBookmarksOnly(showBookmarks);
+    setPropertyId(propertyId);
 
-    // Reconstruct location string for hero search
+    // added on 4/15 by MS for TT campaign param pasthrough 
+    if (contactName || customerName || department || campaignLocation) {
+      setCampaign({
+        contactName,
+        customerName,
+        department,
+        location: campaignLocation,
+      });
+    }
+
+    // Reconstruct location string for hero search (marketing hero; client portal hero uses property/profession selects)
     let locationStr = '';
     if (zip) {
       locationStr = zip;
@@ -99,9 +147,33 @@ export default function SearchParamsSyncer() {
 
     if (locationStr) {
       setLocation(locationStr);
+    } else {
+      setLocation('');
     }
 
-    hasInitialized.current = true;
+    // Auto-scroll to results section if there are search filters
+    const hasSearchFilters =
+      !!keywordsParam ||
+      !!zipCodesParam ||
+      !!city ||
+      !!state ||
+      !!zip ||
+      !!professionsParam ||
+      !!radiusParam ||
+      !!officeParam ||
+      showBookmarks;
+
+    if (hasSearchFilters) {
+      // Small delay to ensure DOM is ready
+      setTimeout(() => {
+        const resultsSection = document.getElementById('results-section');
+        if (resultsSection) {
+          resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
+    }
+    setHydrated(true);
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams.toString()]); // Only depend on params string
 

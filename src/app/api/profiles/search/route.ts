@@ -76,7 +76,19 @@ export async function GET(request: NextRequest) {
 
     // Radius search
     const radius = searchParams.get('radius');
-    if (radius) params.radius = parseInt(radius);
+    if (radius) params.radius = parseInt(radius, 10);
+
+    const sortByRaw = searchParams.get('sortBy');
+    if (
+      sortByRaw &&
+      ['name', 'location', 'profession'].includes(sortByRaw)
+    ) {
+      params.sortBy = sortByRaw as 'name' | 'location' | 'profession';
+    }
+    const sortDirectionRaw = searchParams.get('sortDirection');
+    if (sortDirectionRaw && ['asc', 'desc'].includes(sortDirectionRaw)) {
+      params.sortDirection = sortDirectionRaw as 'asc' | 'desc';
+    }
 
     // Search profiles using abstraction layer
     const result = await db.searchProfiles(params);

@@ -6,21 +6,11 @@
  */
 
 import sql from 'mssql';
+import { getMssqlBaseConfig } from '../src/lib/db/sql-config';
 
 const TABLE_NAME = 'RayTestShowcase';
 
-// Azure SQL config
-const config: sql.config = {
-  server: process.env.AZURE_SQL_SERVER || 'ipsql2025.database.windows.net',
-  database: process.env.AZURE_SQL_DATABASE || 'intertalent_DB',
-  user: process.env.AZURE_SQL_USER,
-  password: process.env.AZURE_SQL_PASSWORD,
-  options: {
-    encrypt: true,
-    enableArithAbort: true,
-    trustServerCertificate: false,
-  },
-};
+const config: sql.config = getMssqlBaseConfig();
 
 // Test parameters
 const TEST_ZIP = '44289'; // Example zip code

@@ -37,12 +37,11 @@ npm run dev
 ### Environment Variables
 
 ```bash
-# Database (Azure SQL)
-DATABASE_TYPE=azure-sql
-AZURE_SQL_SERVER=
-AZURE_SQL_DATABASE=
-AZURE_SQL_USER=
-AZURE_SQL_PASSWORD=
+# Database (Azure SQL) — DB_* is preferred; INTERTALENT_SQL_* / AZURE_SQL_* still work as fallbacks
+DB_SERVER=ipsql2025.database.windows.net
+DB_NAME=intertalent_DB
+DB_USER=
+DB_PASSWORD=
 
 # Email (O365 SMTP)
 SMTP_HOST=smtp.office365.com

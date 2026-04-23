@@ -7,6 +7,7 @@ import sql from 'mssql';
 import fs from 'fs';
 import path from 'path';
 import { parse } from 'csv-parse/sync';
+import { getMssqlBaseConfig } from '../src/lib/db/sql-config';
 
 const CSV_FILE = path.join(
   __dirname,
@@ -14,18 +15,7 @@ const CSV_FILE = path.join(
 );
 const BATCH_SIZE = 100;
 
-// Azure SQL config
-const config: sql.config = {
-  server: process.env.AZURE_SQL_SERVER || 'ipsql2025.database.windows.net',
-  database: process.env.AZURE_SQL_DATABASE || 'intertalent_DB',
-  user: process.env.AZURE_SQL_USER,
-  password: process.env.AZURE_SQL_PASSWORD,
-  options: {
-    encrypt: true,
-    enableArithAbort: true,
-    trustServerCertificate: false,
-  },
-};
+const config: sql.config = getMssqlBaseConfig();
 
 interface CSVRow {
   Office: string;

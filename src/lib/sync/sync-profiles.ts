@@ -5,7 +5,7 @@
 
 import { parseCSVFile } from '../data/csv-parser';
 import { db } from '../db';
-import type { Profile } from '../db/supabase';
+import type { Profile } from '../db';
 import { sanitizeProfile, validateProfile } from '../../utils/validator';
 import type { ParsedProfile } from '../data/csv-parser';
 

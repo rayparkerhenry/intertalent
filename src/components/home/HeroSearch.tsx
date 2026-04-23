@@ -127,10 +127,10 @@ export default function HeroSearch() {
 
   return (
     <section className="relative bg-[#1e3a5f] text-white overflow-hidden">
-      {/* Background Image */}
+      {/* Background Image  Changed on 12/12/25 to Marketing image reduced size by MS*/}
       <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat h-[850px]"
-        style={{ backgroundImage: 'url(/bg-hero1.jpg)' }}
+        className="absolute inset-0 bg-cover bg-left bg-no-repeat sm:bg-top"
+        style={{ backgroundImage: 'url(/bg-hero2.1.jpg)' }}
       />
 
       {/* Dark overlay for text readability */}
@@ -151,7 +151,7 @@ export default function HeroSearch() {
 
           {/* Subtitle */}
           <p className="text-base md:text-lg text-gray-200">
-            Find the right Maintenance Professional to complete the job.
+            Find the right Professional to complete the job.
           </p>
         </div>
 
@@ -267,7 +267,7 @@ export default function HeroSearch() {
             {/* Search Button */}
             <button
               type="submit"
-              className="bg-[#ef4444] hover:bg-[#dc2626] text-white font-semibold px-6 md:px-8 py-3 rounded-full transition-colors text-sm md:text-base whitespace-nowrap shadow-lg md:shadow-none"
+              className="bg-[#1e3a5f] hover:bg-[#2d5a8f] text-white font-semibold px-6 md:px-8 py-3 rounded-full transition-colors text-sm md:text-base whitespace-nowrap shadow-lg md:shadow-none"
             >
               Search
             </button>

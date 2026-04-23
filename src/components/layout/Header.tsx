@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
 
@@ -11,36 +12,38 @@ export default function Header() {
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex flex-col">
-            <span className="text-3xl font-bold leading-tight">
-              InterSolutions
-            </span>
-            <span className="text-[8px] font-medium tracking-wider leading-tight">
-              PROPERTY MANAGEMENT STAFFING SPECIALISTS
-            </span>
+          <Link href="/" className="flex items-center">
+            <Image
+              src="/InterSolutions_Trademark_White.webp"
+              alt="InterSolutions - Property Management Staffing Specialists"
+              width={200}
+              height={50}
+              priority
+              className="h-10 md:h-12 w-auto"
+            />
           </Link>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-8">
-            <Link href="/" className="hover:text-gray-200 transition-colors">
+            <Link href="https://www.intersolutions.com/job-seekers/" className="hover:text-gray-200 transition-colors">
               Job Seekers
             </Link>
-            <Link href="/" className="hover:text-gray-200 transition-colors">
+            <Link href="https://www.intersolutions.com/employers/" className="hover:text-gray-200 transition-colors">
               Employers
             </Link>
-            <Link href="/" className="hover:text-gray-200 transition-colors">
+            <Link href="https://www.intersolutions.com/specializations/" className="hover:text-gray-200 transition-colors">
               Specializations
             </Link>
-            <Link href="/" className="hover:text-gray-200 transition-colors">
+            <Link href="https://jobs.intersolutions.com/" className="hover:text-gray-200 transition-colors">
               Search Jobs
             </Link>
-            <Link href="/" className="hover:text-gray-200 transition-colors">
+            <Link href="https://www.intersolutions.com/about-us/" className="hover:text-gray-200 transition-colors">
               About Us
             </Link>
-            <Link href="/" className="hover:text-gray-200 transition-colors">
+            <Link href="https://www.intersolutions.com/news/" className="hover:text-gray-200 transition-colors">
               News
             </Link>
-            <Link href="/" className="hover:text-gray-200 transition-colors">
+            <Link href="https://www.intersolutions.com/contact-us/" className="hover:text-gray-200 transition-colors">
               Contact Us
             </Link>
           </nav>
@@ -80,49 +83,49 @@ export default function Header() {
         {isMobileMenuOpen && (
           <nav className="md:hidden mt-4 pb-4 flex flex-col gap-4 bg-[#1e3a5f]/95 rounded-lg p-4">
             <Link
-              href="/"
+              href="https://www.intersolutions.com/job-seekers/"
               className="hover:text-gray-200 transition-colors py-2"
               onClick={() => setIsMobileMenuOpen(false)}
             >
               Job Seekers
             </Link>
             <Link
-              href="/"
+              href="https://www.intersolutions.com/employers/"
               className="hover:text-gray-200 transition-colors py-2"
               onClick={() => setIsMobileMenuOpen(false)}
             >
               Employers
             </Link>
             <Link
-              href="/"
+              href="https://www.intersolutions.com/specializations/"
               className="hover:text-gray-200 transition-colors py-2"
               onClick={() => setIsMobileMenuOpen(false)}
             >
               Specializations
             </Link>
             <Link
-              href="/"
+              href="https://jobs.intersolutions.com/"
               className="hover:text-gray-200 transition-colors py-2"
               onClick={() => setIsMobileMenuOpen(false)}
             >
               Search Jobs
             </Link>
             <Link
-              href="/"
+              href="https://www.intersolutions.com/about-us/"
               className="hover:text-gray-200 transition-colors py-2"
               onClick={() => setIsMobileMenuOpen(false)}
             >
               About Us
             </Link>
             <Link
-              href="/"
+              href="https://www.intersolutions.com/news/"
               className="hover:text-gray-200 transition-colors py-2"
               onClick={() => setIsMobileMenuOpen(false)}
             >
               News
             </Link>
             <Link
-              href="/"
+              href="https://www.intersolutions.com/contact-us/"
               className="hover:text-gray-200 transition-colors py-2"
               onClick={() => setIsMobileMenuOpen(false)}
             >

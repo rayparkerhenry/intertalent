@@ -43,8 +43,10 @@ CONFIG = {
 Or set environment variables:
 
 ```bash
-set AZURE_SQL_USER=your_username
-set AZURE_SQL_PASSWORD=your_password
+set DB_SERVER=ipsql2025.database.windows.net
+set DB_NAME=intertalent_DB
+set DB_USER=your_username
+set DB_PASSWORD=your_password
 ```
 
 ### 3. Run the Script

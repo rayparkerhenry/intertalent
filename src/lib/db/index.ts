@@ -1,32 +1,17 @@
 /**
  * Database Factory and Export
  * Central point for database access throughout the application
+ * Uses Azure SQL Database
  */
 
-import { PostgresDatabase } from './implementations/postgres';
 import { AzureSqlDatabase } from './implementations/azure-sql';
-import { supabase, supabaseAdmin } from './supabase';
 import type { IDatabase } from './interface';
 
 /**
- * Create database instance based on environment configuration
- * Week 1-2: Uses PostgreSQL (Supabase)
- * Week 3: Will switch to Azure SQL via DATABASE_TYPE env var
+ * Create database instance - Azure SQL only
  */
 function createDatabase(): IDatabase {
-  const dbType = process.env.DATABASE_TYPE || 'postgres';
-
-  if (dbType === 'postgres') {
-    // Current: PostgreSQL via Supabase
-    return new PostgresDatabase(supabase, supabaseAdmin);
-  }
-
-  if (dbType === 'azure-sql') {
-    // Production: Azure SQL Server
-    return new AzureSqlDatabase();
-  }
-
-  throw new Error(`Unknown database type: ${dbType}`);
+  return new AzureSqlDatabase();
 }
 
 /**
@@ -42,7 +27,7 @@ function createDatabase(): IDatabase {
 export const db = createDatabase();
 
 // Re-export types for convenience
-export type { IDatabase } from './interface';
+export type { IDatabase, Profile } from './interface';
 export type {
   ProfileSearchParams,
   PaginatedProfiles,
@@ -50,4 +35,3 @@ export type {
   OfficeInfo,
   LocationEmailResult,
 } from './interface';
-export type { Profile } from './supabase';

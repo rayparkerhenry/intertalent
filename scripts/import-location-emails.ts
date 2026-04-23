@@ -10,17 +10,9 @@
  */
 
 import sql from 'mssql';
+import { getMssqlBaseConfig } from '../src/lib/db/sql-config';
 
-const config: sql.config = {
-  server: process.env.AZURE_SQL_SERVER || 'ipsql2025.database.windows.net',
-  database: process.env.AZURE_SQL_DATABASE || 'intertalent_DB',
-  user: process.env.AZURE_SQL_USER,
-  password: process.env.AZURE_SQL_PASSWORD,
-  options: {
-    encrypt: true,
-    trustServerCertificate: false,
-  },
-};
+const config: sql.config = getMssqlBaseConfig();
 
 // All 77 location-email mappings from client's Excel + Default
 const locationEmails = [

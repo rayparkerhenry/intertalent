@@ -11,8 +11,8 @@ import type {
   PaginatedProfiles,
   StateInfo,
   OfficeInfo,
+  Profile,
 } from '../interface';
-import type { Profile } from '../supabase';
 import { getZipLocation, getCityLocation } from '../../geospatial';
 
 // Table names configurable via environment variables
@@ -108,8 +108,16 @@ export class AzureSqlDatabase implements IDatabase {
       row.OnAssignment === 'Yes' ||
       row.OnAssignment === 'yes';
 
-    const isActive =
-      row.Status === 'Active' || row.Status === 'active' || onAssignment;
+    // adjusted to show statuses other than Active explicitly 1/2/2026 MS
+    const ACTIVE_STATUSES = [
+      'Active',
+      'Idle',
+      'InProgress',
+      'Rehire',
+      'ReOnboard',
+    ];
+
+    const isActive = ACTIVE_STATUSES.includes(row.Status as string);
 
     // Handle both PersonID and PersonId (case variations between tables)
     const personId = row.PersonID || row.PersonId || row.personId || '';
@@ -132,6 +140,13 @@ export class AzureSqlDatabase implements IDatabase {
     } else {
       createdAt = new Date().toISOString();
     }
+    const cleanSummary =
+      typeof row.ProfessionalSummary === 'string'
+        ? row.ProfessionalSummary
+            .replace(/^\s*"+/, '')   // remove leading quotes
+            .replace(/"+\s*$/, '')   // remove trailing quotes
+            .trim()
+        : '';
 
     const profile: Profile = {
       id: String(personId),
@@ -140,7 +155,7 @@ export class AzureSqlDatabase implements IDatabase {
       city: (row.City as string) || '',
       state: (row.State as string) || '',
       zip_code: zipCode,
-      professional_summary: (row.ProfessionalSummary as string) || '',
+      professional_summary: cleanSummary,
       office: (row.Office as string) || '',
       profession_type: (row.ProfessionType as string) || '',
       skills: row.Skill ? [row.Skill as string] : null,
@@ -161,8 +176,22 @@ export class AzureSqlDatabase implements IDatabase {
     return profile;
   }
 
+    // on page open shows active available candidates with professional summaries 12/15/2025 MS 
+    // edited from only active to active, idle, inactive, inProgress, Rehire, and Reonboard 1/2/2026 MS
   private getActiveCondition(): string {
-    return '1=1';
+    return `
+      ProfessionalSummary IS NOT NULL
+      AND LTRIM(RTRIM(ProfessionalSummary)) <> ''
+      AND Status IN (
+        'Active',
+        'Idle',
+        'Inactive',
+        'InProgress',
+        'Rehire',
+        'ReOnboard'
+      )
+      AND OnAssignment = 0
+    `;
   }
 
   async getAllProfiles(

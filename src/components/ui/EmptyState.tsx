@@ -6,17 +6,19 @@ interface EmptyStateProps {
   actionLabel?: string;
   actionHref?: string;
   onAction?: () => void;
+  extraAction?: React.ReactNode; // ⭐ Button injected from page
 }
-
+// created Request Talent Button for Modal 12/12/25 by MS
 export default function EmptyState({
   title = 'No results found',
   message = "We couldn't find any candidates matching your criteria.",
   actionLabel = 'Clear filters',
   actionHref,
   onAction,
+  extraAction,
 }: EmptyStateProps) {
   return (
-    <div className="text-center py-16 px-4">
+    <div className="text-center py-4 px-4">
       {/* Icon */}
       <div className="mx-auto w-16 h-16 mb-4 flex items-center justify-center rounded-full bg-gray-100">
         <svg
@@ -34,10 +36,8 @@ export default function EmptyState({
         </svg>
       </div>
 
-      {/* Title */}
       <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
 
-      {/* Message */}
       <p className="text-gray-600 mb-6 max-w-md mx-auto">{message}</p>
 
       {/* Suggestions */}
@@ -51,9 +51,9 @@ export default function EmptyState({
         </ul>
       </div>
 
-      {/* Action button */}
+      {/* Clear Filters Button */}
       {(actionHref || onAction) && (
-        <div>
+        <div className="flex flex-col items-center space-y-2">
           {actionHref ? (
             <Link
               href={actionHref}
@@ -69,6 +69,9 @@ export default function EmptyState({
               {actionLabel}
             </button>
           )}
+
+          {/* ⭐ Request Talent Button (tight spacing) */}
+          {extraAction && <div>{extraAction}</div>}
         </div>
       )}
     </div>

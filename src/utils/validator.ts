@@ -165,7 +165,7 @@ export function sanitizeProfile(profile: ParsedProfile): ParsedProfile {
     city: profile.city.trim(),
     state: profile.state.trim().toUpperCase(),
     zip_code: profile.zip_code.trim(),
-    professional_summary: profile.professional_summary.trim(),
+    professional_summary: (profile.professional_summary ?? '').trim(), //updated to handle null and undefined cases elegantly 1/2/2026 MS 
     office: profile.office.trim(),
     profession_type: profile.profession_type.trim(),
   };

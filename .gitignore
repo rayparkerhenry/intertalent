@@ -34,12 +34,20 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel
+
+# legacy / local-only ingestion pipeline
+intertalent-ingestion/
+
 
 # typescript
 *.tsbuildinfo
 next-env.d.ts
 
-*.md
+*.md*.zip
+deploy/
+*.zip
+scripts/python/zip_coordinates_cache.json

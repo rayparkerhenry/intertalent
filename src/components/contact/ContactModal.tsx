@@ -3,11 +3,16 @@
  * Modal form for requesting an associate - triggered by "Request Associate" button
  * Prefills with associate info, looks up office email, sends contact request
  */
+/**
+ * @deprecated
+ * Legacy ContactModal.
+ * Replaced by RequestTalentModal + /api/request-talent.
+ 
 
 'use client';
 
 import { useState, useEffect } from 'react';
-import type { Profile } from '@/lib/db/supabase';
+import type { Profile } from '@/lib/db';
 
 interface ContactModalProps {
   isOpen: boolean;
@@ -46,7 +51,7 @@ const isValidEmail = (email: string): boolean => {
   return emailRegex.test(email.trim());
 };
 
-export default function ContactModal({
+//export default function ContactModal({
   isOpen,
   onClose,
   profile,
@@ -152,7 +157,7 @@ export default function ContactModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
       <div className="relative bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
-        {/* Close Button */}
+        {/* Close Button */ /*}
         <button
           onClick={handleClose}
           disabled={isSubmitting}
@@ -174,9 +179,9 @@ export default function ContactModal({
           </svg>
         </button>
 
-        {/* Modal Content */}
+        {/* Modal Content */ /*}
         <div className="p-8">
-          {/* Header */}
+          {/* Header */ /*}
           <div className="mb-6">
             <h2 className="text-2xl font-bold text-gray-900 mb-2">
               Request Associate
@@ -190,9 +195,9 @@ export default function ContactModal({
             </p>
           </div>
 
-          {/* Form */}
+          {/* Form */ /*}
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Name Field */}
+            {/* Name Field */ /*}
             <div>
               <label
                 htmlFor="name"
@@ -208,13 +213,13 @@ export default function ContactModal({
                 onChange={(e) =>
                   setFormData({ ...formData, name: e.target.value })
                 }
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e3a5f] focus:border-[#1e3a5f] outline-none transition-all"
+                className="w-full px-4 py-3 placeholder-gray-550 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e3a5f] focus:border-[#1e3a5f] outline-none transition-all"
                 placeholder="John Smith"
                 disabled={isSubmitting}
               />
             </div>
 
-            {/* Email Field */}
+            {/* Email Field */ /*}
             <div>
               <label
                 htmlFor="email"
@@ -238,7 +243,7 @@ export default function ContactModal({
                     setEmailError('Please enter a valid email address');
                   }
                 }}
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#1e3a5f] focus:border-[#1e3a5f] outline-none transition-all ${
+                className={`w-full px-4 py-3 placeholder-gray-550 border rounded-lg focus:ring-2 focus:ring-[#1e3a5f] focus:border-[#1e3a5f] outline-none transition-all ${
                   emailError ? 'border-red-500' : 'border-gray-300'
                 }`}
                 placeholder="john@example.com"
@@ -249,7 +254,7 @@ export default function ContactModal({
               )}
             </div>
 
-            {/* Phone Field (Optional) */}
+            {/* Phone Field (Optional) */ /*}
             <div>
               <label
                 htmlFor="phone"
@@ -273,7 +278,7 @@ export default function ContactModal({
                     setPhoneError('Please enter a valid 10-digit phone number');
                   }
                 }}
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-[#1e3a5f] focus:border-[#1e3a5f] outline-none transition-all ${
+                className={`w-full px-4 py-3 placeholder-gray-550 border rounded-lg focus:ring-2 focus:ring-[#1e3a5f] focus:border-[#1e3a5f] outline-none transition-all ${
                   phoneError ? 'border-red-500' : 'border-gray-300'
                 }`}
                 placeholder="(555) 123-4567"
@@ -284,7 +289,7 @@ export default function ContactModal({
               )}
             </div>
 
-            {/* Comment Field */}
+            {/* Comment Field */ /*}
             <div>
               <label
                 htmlFor="comment"
@@ -300,13 +305,13 @@ export default function ContactModal({
                   setFormData({ ...formData, comment: e.target.value })
                 }
                 rows={4}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e3a5f] focus:border-[#1e3a5f] outline-none transition-all resize-none"
+                className="w-full px-4 py-3 placeholder-gray-550 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e3a5f] focus:border-[#1e3a5f] outline-none transition-all resize-none"
                 placeholder="Tell us about your needs..."
                 disabled={isSubmitting}
               />
             </div>
 
-            {/* Status Messages */}
+            {/* Status Messages */ /*}
             {submitStatus === 'success' && (
               <div className="p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2 text-green-800">
                 <svg
@@ -343,7 +348,7 @@ export default function ContactModal({
               </div>
             )}
 
-            {/* Submit Button */}
+            {/* Submit Button */ /*}
             <div className="flex gap-3 pt-2">
               <button
                 type="button"
@@ -389,3 +394,5 @@ export default function ContactModal({
     </div>
   );
 }
+
+*/

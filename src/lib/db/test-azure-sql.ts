@@ -4,21 +4,12 @@
  */
 
 import sql from 'mssql';
+import { getMssqlBaseConfig } from './sql-config';
 
 async function testAzureSqlConnection() {
   console.log('🔄 Testing Azure SQL Connection...\n');
 
-  const config: sql.config = {
-    server: process.env.AZURE_SQL_SERVER || 'ipsql2025.database.windows.net',
-    database: process.env.AZURE_SQL_DATABASE || 'intertalent_DB',
-    user: process.env.AZURE_SQL_USER,
-    password: process.env.AZURE_SQL_PASSWORD,
-    options: {
-      encrypt: true,
-      enableArithAbort: true,
-      trustServerCertificate: false,
-    },
-  };
+  const config: sql.config = getMssqlBaseConfig();
 
   console.log('📋 Connection Config:');
   console.log(`   Server: ${config.server}`);
@@ -104,12 +95,12 @@ async function testAzureSqlConnection() {
       if (error.message.includes('Login failed')) {
         console.error('\n💡 Possible solutions:');
         console.error(
-          '   1. Check AZURE_SQL_USER and AZURE_SQL_PASSWORD in .env.local'
+          '   1. Check DB_USER and DB_PASSWORD in .env.local'
         );
         console.error('   2. Verify the user has access to the database');
       } else if (error.message.includes('Cannot open server')) {
         console.error('\n💡 Possible solutions:');
-        console.error('   1. Check AZURE_SQL_SERVER in .env.local');
+        console.error('   1. Check DB_SERVER in .env.local');
         console.error(
           '   2. Verify your IP is in the Azure SQL firewall rules'
         );

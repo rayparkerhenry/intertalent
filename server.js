@@ -2,6 +2,14 @@ const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
+// Next.js `next dev` loads .env* automatically; `npm start` uses this file only,
+// so load env here so DB_* / SMTP_* from .env.local work locally.
+require('dotenv').config({ path: path.join(__dirname, '.env') });
+require('dotenv').config({
+  path: path.join(__dirname, '.env.local'),
+  override: true,
+});
+
 const port = process.env.PORT || 8080;
 
 console.log('=== Azure App Service Startup ===');

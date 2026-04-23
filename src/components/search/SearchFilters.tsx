@@ -334,7 +334,7 @@ export default function SearchFilters({ className = '' }: SearchFiltersProps) {
             </div>
           ) : (
             <div className="space-y-2.5">
-              {professions.slice(0, 5).map((profession) => (
+              {professions.map((profession) => (
                 <label
                   key={profession}
                   className="flex items-center cursor-pointer group"
